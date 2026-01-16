@@ -60,13 +60,16 @@ jobs:
           
           # Count how many languages have changes
           COUNT=0
-          if [ "$HAS_EN" = "true" ]; then ((COUNT++)); fi
-          if [ "$HAS_ZH" = "true" ]; then ((COUNT++)); fi
-          if [ "$HAS_JA" = "true" ]; then ((COUNT++)); fi
+          if [ "$HAS_EN" = "true" ]; then COUNT=$((COUNT + 1)); fi
+          if [ "$HAS_ZH" = "true" ]; then COUNT=$((COUNT + 1)); fi
+          if [ "$HAS_JA" = "true" ]; then COUNT=$((COUNT + 1)); fi
           
           echo "lang_count=$COUNT" >> $GITHUB_OUTPUT
           
           echo "Languages with changes: $COUNT (EN: $HAS_EN, ZH: $HAS_ZH, JA: $HAS_JA)"
+          
+          # Ensure the script exits successfully
+          exit 0
       
       - name: Comment on PR if translation needed
         if: steps.changed-files.outputs.lang_count != '0' && steps.changed-files.outputs.lang_count != '3'
