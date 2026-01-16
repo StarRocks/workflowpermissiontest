@@ -43,9 +43,9 @@ The following language(s) are not updated:
 Should a translation job be run to update the missing language(s)?
 
 - To request a translation job, comment: `/translate-request`
-- To approve a translation job (docs-maintainers team only), comment: `/translate-approve`
+- To approve a translation job (docs-maintainer team only), comment: `/translate-approve`
 
-> Note: Only members of the `StarRocks/docs-maintainers` team can approve translation jobs.
+> Note: Only members of the `StarRocks/docs-maintainer` team can approve translation jobs.
 ```
 
 ## 🔐 Permission Levels
@@ -53,9 +53,9 @@ Should a translation job be run to update the missing language(s)?
 ### Anyone Can:
 - **Request** a translation job by commenting `/translate-request` on the PR
 
-### docs-maintainers Team Members Can:
+### docs-maintainer Team Members Can:
 - **Approve** a translation job by commenting `/translate-approve` on the PR
-- This requires membership in the `StarRocks/docs-maintainers` GitHub team
+- This requires membership in the `StarRocks/docs-maintainer` GitHub team
 
 ### Repository Setup Required:
 - An `ORG_READ_TOKEN` secret must be configured in the repository settings
@@ -67,7 +67,7 @@ Should a translation job be run to update the missing language(s)?
 | Command | Who Can Use | Description |
 |---------|-------------|-------------|
 | `/translate-request` | Anyone | Request that a translation job should be run for missing languages |
-| `/translate-approve` | docs-maintainers team only | Approve and trigger the translation job |
+| `/translate-approve` | docs-maintainer team only | Approve and trigger the translation job |
 
 ## 📋 Workflow Permissions
 
@@ -79,10 +79,10 @@ The workflow requires the following permissions:
 
 ### Prerequisites
 
-1. **Create the docs-maintainers team:**
+1. **Create the docs-maintainer team:**
    - Go to your organization settings on GitHub
    - Navigate to Teams
-   - Create a team named `docs-maintainers`
+   - Create a team named `docs-maintainer`
    - Add users who should be able to approve translations
 
 2. **Configure organization access token (required for team membership check):**

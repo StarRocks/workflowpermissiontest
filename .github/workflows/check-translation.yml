@@ -103,9 +103,9 @@ jobs:
             **Should a translation job be run to update the missing language(s)?**
             
             - To **request** a translation job, comment: \`/translate-request\`
-            - To **approve** a translation job (docs-maintainers team only), comment: \`/translate-approve\`
+            - To **approve** a translation job (docs-maintainer team only), comment: \`/translate-approve\`
             
-            > **Note:** Only members of the \`StarRocks/docs-maintainers\` team can approve translation jobs.`;
+            > **Note:** Only members of the \`StarRocks/docs-maintainer\` team can approve translation jobs.`;
             
             // Check if we already commented on this PR
             const { data: comments } = await github.rest.issues.listComments({
@@ -173,12 +173,12 @@ jobs:
             const commenter = '${{ github.event.comment.user.login }}';
             
             try {
-              // Check if the commenter is a member of the docs-maintainers team
+              // Check if the commenter is a member of the docs-maintainer team
               let membership = null;
               try {
                 const response = await github.rest.teams.getMembershipForUserInOrg({
                   org: 'StarRocks',
-                  team_slug: 'docs-maintainers',
+                  team_slug: 'docs-maintainer',
                   username: commenter
                 });
                 membership = response.data;
@@ -191,7 +191,7 @@ jobs:
               
               if (membership && (membership.state === 'active')) {
                 // User is a team member, approve the translation
-                const commentBody = `✅ Translation job **approved** by @${commenter} (docs-maintainers team member).
+                const commentBody = `✅ Translation job **approved** by @${commenter} (docs-maintainer team member).
                 
                 🚀 The translation job will be triggered.
                 
@@ -215,7 +215,7 @@ jobs:
                 // User is not a team member
                 const commentBody = `❌ @${commenter}, you do not have permission to approve translation jobs.
                 
-                Only members of the \`StarRocks/docs-maintainers\` team can approve translations.`;
+                Only members of the \`StarRocks/docs-maintainer\` team can approve translations.`;
                 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -231,7 +231,7 @@ jobs:
               Error: ${error.message}
               
               Please ensure:
-              1. The \`StarRocks/docs-maintainers\` team exists
+              1. The \`StarRocks/docs-maintainer\` team exists
               2. The GitHub token has the necessary permissions to check team membership
               3. You are a member of the \`StarRocks\` organization`;
               
