@@ -118,7 +118,7 @@ The workflow compares the base branch with the PR branch and checks which files 
 To customize the workflow:
 
 1. **Change language directories**: Update the `paths` section in the workflow file
-2. **Change team name**: Replace `docs-maintainers` with your team slug in the workflow
+2. **Change team name**: Replace `docs-maintainer` with your team slug in the workflow
 3. **Modify comment messages**: Edit the comment templates in the workflow's `script` sections
 
 ## 📝 Example Usage
@@ -128,7 +128,7 @@ To customize the workflow:
 1. Developer creates a PR that updates `/docs/en/guide.md`
 2. Workflow posts a comment noting that Chinese and Japanese versions are missing
 3. Anyone comments `/translate-request` to indicate translation is needed
-4. A docs-maintainers team member reviews and comments `/translate-approve`
+4. A docs-maintainer team member reviews and comments `/translate-approve`
 5. The workflow confirms approval and adds the `translation-approved` label
 6. (Your translation job or process would then be triggered based on this label)
 
@@ -150,7 +150,7 @@ This workflow focuses on **detection and approval**. To actually run translation
 - **Solution:** Verify that changes are in the docs directories and only 1-2 languages are affected
 
 **Issue:** Approval not working
-- **Solution:** Confirm user is a member of the `StarRocks/docs-maintainers` team and `ORG_READ_TOKEN` is properly configured
+- **Solution:** Confirm user is a member of the `StarRocks/docs-maintainer` team and `ORG_READ_TOKEN` is properly configured
 
 **Issue:** "The GitHub token has the necessary permissions to check team membership" error
 - **Solution:** Create a Personal Access Token with `read:org` scope and add it as `ORG_READ_TOKEN` secret in repository settings

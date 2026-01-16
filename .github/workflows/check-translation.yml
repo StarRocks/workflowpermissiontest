@@ -153,7 +153,7 @@ jobs:
           script: |
             const commentBody = `✅ Translation job requested by @${{ github.event.comment.user.login }}.
             
-            Waiting for approval from a member of the \`StarRocks/docs-maintainers\` team.
+            Waiting for approval from a member of the \`StarRocks/docs-maintainer\` team.
             
             To approve, comment: \`/translate-approve\``;
             
