@@ -162,12 +162,12 @@ jobs:
               });
             }
 
-  handle-translation-commands:
+  handle-translation-REQUEST:
     name: Handle translation commands
     if: |
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request &&
-      (contains(github.event.comment.body, '/translate-request') || contains(github.event.comment.body, '/translate-approve'))
+      (contains(github.event.comment.body, '/translate-request'))
     runs-on: ubuntu-latest
     
     steps:
@@ -189,103 +189,37 @@ jobs:
               body: commentBody
             });
 
-      - name: Check if comment is a translation APPROVAL
-        if: contains(github.event.comment.body, '/translate-approve')
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const commentBody = `✅ Translation job APPROVAL by @${{ github.event.comment.user.login }}.
-            
-            Waiting for approval from a member of the \`StarRocks/docs-maintainer\` team.
-            
-            To approve, comment: \`/scooby-doo\``;
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: commentBody
-            });
-      - name: Check team membership and approve
-        if: contains(github.event.comment.body, '/translate-approve')
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.DOC_MEMBERSHIP_PAT || secrets.GITHUB_TOKEN }}
-          script: |
-            const commenter = '${{ github.event.comment.user.login }}';
-            
-            try {
-              // Check if the commenter is a member of the docs-maintainer team
-              let membership = null;
-              try {
-                const response = await github.rest.teams.getMembershipForUserInOrg({
-                  org: 'StarRocks',
-                  team_slug: 'docs-maintainer',
-                  username: commenter
-                });
-                membership = response.data;
-              } catch (error) {
-                if (error.status !== 404) {
-                const commentBody = `@${commenter} tried to approve. Error status is ${error.status}.`
-                
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: commentBody
-                });
-                  throw error;
-                }
-                // 404 means user is not a member, membership stays null
-              }
-              
-              if (membership && (membership.state === 'active')) {
-                // User is a team member, approve the translation
-                const commentBody = `@${commenter} tried to approve. Error status is ${error.status}.`
-                
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: commentBody
-                });
-                
-                // Add label to indicate translation is approved
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  labels: ['translation-approved']
-                });
-              } else {
-                // User is not a team member
-                const commentBody = `@${commenter} tried to approve. Error status is ${error.status}.`
-                
-                
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: commentBody
-                });
-              }
-            } catch (error) {
-              console.error('Error checking team membership:', error);
-              const commentBody = `⚠️ Error checking team membership for @${commenter}. 
-              
-              Error: ${error.message}
-              
-              Please ensure:
-              1. The \`StarRocks/docs-maintainer\` team exists
-              2. The GitHub token has the necessary permissions to check team membership
-              3. You are a member of the \`StarRocks\` organization`;
-              
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: commentBody
-              });
-            }
+  handle-translation-APPROVAL:
+    name: Translate the documents upon approval
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      (contains(github.event.comment.body, '/translate-approve'))
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Get list of docs-maintainers
+        run: |
+          # Fetch the list of users in the organization team docs-maintainer
+          DOC_MEMBERSHIP_PAT=${{ secrets.DOC_MEMBERSHIP_PAT || secrets.GITHUB_TOKEN }}
+          DOCS_MAINTAINERS=$(curl -s -H "Authorization: token $DOC_MEMBERSHIP_PAT" \
+          "https://api.github.com/orgs/starrocks/teams/docs-maintainer/members" | jq -r '.[].login')
+
+          # Save the allowlisted users in a file
+          echo "$DOCS_MAINTAINERS" > allowlisted_users.txt
+          cat allowlisted_users.txt
+
+      - name: Verify approver membership
+        id: verify-approver
+        run: |
+            APPROVER="${{ github.event.comment.user.login }}"
+            echo "Approver: $APPROVER"
+
+            if grep -q --line-regexp "$APPROVER" allowlisted_users.txt; then
+              echo "User $APPROVER is in the allowlist."
+              echo "is_allowlisted=true" >> $GITHUB_OUTPUT
+            else
+              echo "User $APPROVER is NOT in the allowlist."
+              echo "is_allowlisted=false" >> $GITHUB_OUTPUT
+            fi
