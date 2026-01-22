@@ -1,3 +1,3 @@
 # Example 3
 
-hi
+hi 3
