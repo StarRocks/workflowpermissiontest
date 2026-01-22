@@ -4,7 +4,7 @@ on:
     types: [created]
 
 jobs:
-  execute:
+  translate:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/translate')
     runs-on: ubuntu-latest
     permissions:
