@@ -50,7 +50,7 @@ jobs:
               
               let fileChecklist = "";
               targets.forEach(lang => {
-                const targetPath = file.replace(`/docs/${sourceLang}/`, `/docs/${lang}/`);
+                const targetPath = file.replace(`docs/${sourceLang}/`, `docs/${lang}/`);
                 if (!fs.existsSync(targetPath)) {
                   fileChecklist += `- [ ] **${lang}** for \`${file}\`\n`;
                 }
