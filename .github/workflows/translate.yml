@@ -58,6 +58,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           pip install -U google-genai==0.3.0 pyyaml==6.0.2
+          ls -R .
           # Use double quotes around "$FILES" to prevent word-splitting
           python docs/translation/translate.py -l ja --files "docs/en/example2.md docs/en/example3.md"
 
