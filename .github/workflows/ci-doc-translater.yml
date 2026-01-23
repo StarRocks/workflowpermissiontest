@@ -79,7 +79,7 @@ jobs:
           BODY: ${{ steps.get_checks.outputs.result }}
           FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          pip install -r requirements.txt
+          pip install -r docs/translation/requirements.txt
           for FILE in $FILES; do
             # Only process files in docs/lang/ directories
             if [[ "$FILE" =~ ^docs/(en|zh|ja)/ ]]; then
