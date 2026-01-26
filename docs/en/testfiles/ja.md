@@ -1,0 +1,153 @@
+- `FEs should be FE`: FE
+- `BEs should be BE`: BE
+- `distributed architecture should be &da 分散アーキテクチャ`: distributed architecture
+- `distributed-architecture should be *da`: distributed-architecture
+- `Data loading should be データロード`: Data loading
+- `Data unloading should be データアンロード`: Data unloading
+- `load should be ロード`: load
+- `native table should be 内部テーブル`: native table
+- `Cloud-native table should be クラウドネイティブテーブル`: Cloud-native table
+- `External Table should be 外部テーブル`: External Table
+- `File External Table should be ファイル外部テーブル`: File External Table
+- `Hive external table should be Hive 外部テーブル`: Hive external table
+- `hierarchy of data objects should be データオブジェクトの階層`: hierarchy of data objects
+- `storage layering should be ストレージ階層化`: storage layering
+- `separation of storage and compute should be ストレージとコンピュートの分離`: separation of storage and compute
+- `shared-data mode should be 共有データモード`: shared-data mode
+- `shared-nothing mode should be 共有なしモード`: shared-nothing mode
+- `shared-data cluster should be 共有データクラスタ`: shared-data cluster
+- `shared-nothing cluster should be 共有なしクラスタ`: shared-nothing cluster
+- `zero-migration should be ゼロマイグレーション`: zero-migration
+- `native vectorized engine should be ネイティブベクトル化エンジン`: native vectorized engine
+- `vectorized query engine should be ベクトル化クエリエンジン`: vectorized query engine
+- `query federation/federated query should be フェデレーションクエリ`: query federation/federated query
+- `query plan should be &qp クエリプラン`: query plan
+- `query planning should be *qp`: query planning
+- `query analysis should be *qp`: query analysis
+- `columnar storage should be 列指向（カラムナ）ストレージ`: columnar storage
+- `row storage should be 行指向（ロウ）ストレージ`: row storage
+- `intelligent materialized view should be インテリジェントなマテリアライズドビュー`: intelligent materialized view
+- `base table should be ベーステーブル`: base table
+- `materialized view should be マテリアライズドビュー`: materialized view
+- `synchronous materialized view should be 同期マテリアライズドビュー`: synchronous materialized view
+- `asynchronous materialized view should be 非同期マテリアライズドビュー`: asynchronous materialized view
+- `unified batch and streaming, batch-stream integrated should be バッチストリーム統合`: unified batch and streaming, batch-stream integrated
+- `high availability should be 高可用性`: high availability
+- `high concurrency should be &hc 高い同時実行性`: high concurrency
+- `high-concurrency should be *hc`: high-concurrency
+- `high scalability should be 高拡張性`: high scalability
+- `data ingestion should be データ取り込み`: data ingestion
+- `denormalized table/flat table should be 非正規化テーブル`: denormalized table/flat table
+- `pre-aggregation should be 事前集計`: pre-aggregation
+- `aggregate query should be 集計クエリ`: aggregate query
+- `star schema should be スタースキーマ`: star schema
+- `snowflake schema should be スノーフレークスキーマ`: snowflake schema
+- `point query should be ポイントクエリ`: point query
+- `table type should be テーブルタイプ`: table type
+- `Duplicate Key table should be 重複キーテーブル`: Duplicate Key table
+- `Aggregate table should be 集計テーブル`: Aggregate table
+- `Primary Key table should be 主キーテーブル`: Primary Key table
+- `Unique Key table should be ユニークキーテーブル`: Unique Key table
+- `data cleaning should be データクレンジング`: data cleaning
+- `global dictionary should be グローバル辞書`: global dictionary
+- `global dictionary for low-cardinality optimization should be 低基数最適化のためのグローバル辞書`: global dictionary for low-cardinality optimization
+- `low cardinality should be 低基数`: low cardinality
+- `warehousing logistics should be データウェアハウスのロジスティクス`: warehousing logistics
+- `query performance should be クエリパフォーマンス`: query performance
+- `data acquisition should be データ取得`: data acquisition
+- `multi-table join query should be 複数テーブルジョインクエリ`: multi-table join query
+- `cost-based optimizer should be コストベースオプティマイザ`: cost-based optimizer
+- `separation of storage and compute should be ストレージとコンピュートの分離`: separation of storage and compute
+- `cost estimation should be コスト推定`: cost estimation
+- `binary tree should be 二分木`: binary tree
+- `data analytics should be データ分析`: data analytics
+- `data lake analytics should be データレイク分析`: data lake analytics
+- `detailed data should be 詳細データ`: detailed data
+- `distinct count should be 重複排除カウント`: distinct count
+- `exact distinct count should be 正確な重複排除カウント`: exact distinct count
+- `approximate distinct count should be 近似重複排除カウント`: approximate distinct count
+- `table schema should be テーブルスキーマ`: table schema
+- `sort key should be ソートキー`: sort key
+- `bucketing key should be バケッティングキー`: bucketing key
+- `List Partitioning should be リストパーティション化`: List Partitioning
+- `secondary partitioning should be セカンダリパーティション`: secondary partitioning
+- `Range Partitioning should be レンジパーティション化`: Range Partitioning
+- `partitioning column should be パーティション列`: partitioning column
+- `partition key should be パーティションキー`: partition key
+- `random bucketing should be ランダムバケット法`: random bucketing
+- `partitioning method should be パーティション化の手法`: partitioning method
+- `automatic partitioning should be 自動パーティション化`: automatic partitioning
+- `dynamic partitioning should be 動的パーティション化`: dynamic partitioning
+- `expression partitioning should be 式に基づくパーティション化`: expression partitioning
+- `list partitioning should be リストパーティション化`: list partitioning
+- `partition division should be パーティション分割`: partition division
+- `replica should be レプリカ`: replica
+- `user profiling should be ユーザープロファイリング`: user profiling
+- `user retention should be ユーザーリテンション`: user retention
+- `precision marketing should be 精密マーケティング`: precision marketing
+- `group analysis should be グループ分析`: group analysis
+- `late materialization should be 後期実体化`: late materialization
+- `data locality should be データのローカル性`: data locality
+- `prefix index should be プレフィックスインデックス`: prefix index
+- `suffix column should be サフィックス列 `: suffix column
+- `prefix column should be プレフィックス列 `: prefix column
+- `tiered storage should be 階層型ストレージ`: tiered storage
+- `inverted indexing should be 転置インデックス`: inverted indexing
+- `approximation algorithm should be 近似アルゴリズム`: approximation algorithm
+- `nested query should be ネストクエリ`: nested query
+- `memory leak should be メモリリーク`: memory leak
+- `memory bloat should be メモリ肥大化`: memory bloat
+- `pruning should be プルーニング`: pruning
+- `partition file should be パーティションファイル`: partition file
+- `abstract syntax tree should be 抽象構文ツリー`: abstract syntax tree
+- `constant folding should be 定数畳み込み`: constant folding
+- `constant propagation should be 定数伝搬`: constant propagation
+- `pessimistic locking should be 悲観ロック`: pessimistic locking
+- `optimistic locking should be 楽観ロック`: optimistic locking
+- `rolling update should be ローリングアップデート`: rolling update
+- `stratified search should be 層化検索`: stratified search
+- `unified search should be 統合検索`: unified search
+- `populate a table should be テーブルにデータを投入`: populate a table
+- `working directory should be 作業ディレクトリ`: working directory
+- `compute node should be コンピュートノード`: compute node
+- `compute engine should be コンピュートエンジン`: compute engine
+- `equi-height histogram should be 等高ヒストグラム`: equi-height histogram
+- `equi-width histogram should be 等幅ヒストグラム`: equi-width histogram
+- `paginated query should be ページングクエリ`: paginated query
+- `correlated column should be 相関列`: correlated column
+- `literal should be リテラル`: literal
+- `generated column should be 生成列`: generated column
+- `auto increment should be 自動増分列`: auto increment
+- `cloud-native should be クラウドネイティブ`: cloud-native
+- `persistent index should be 永続性インデックス`: persistent index
+- `utility function should be ユーティリティ関数`: utility function
+- `aggregate function should be 集計関数`: aggregate function
+- `spill to disk should be ディスクへのスピル`: spill to disk
+- `query rewrite should be クエリの書き換え`: query rewrite
+- `data re-distribution should be データ再配布`: data re-distribution
+- `local disk should be ローカルディスク`: local disk
+- `automatic cooldown should be 自動クールダウン`: automatic cooldown
+- `storage medium should be 記憶媒体`: storage medium
+- `garbage collection should be ガーベジコレクション`: garbage collection
+- `session variable should be セッション変数`: session variable
+- `global variable should be グローバル変数`: global variable
+- `big query should be 大規模クエリ`: big query
+- `classifier should be クラシファイア（分類器）`: classifier
+- `storage volume should be ストレージボリューム`: storage volume
+- `remote storage should be リモートストレージ`: remote storage
+- `cardinality-preserving join should be 基数保持ジョイン`: cardinality-preserving join
+- `parallelism should be 並行性`: parallelism
+- `partial update should be 部分更新`: partial update
+- `conditional update should be 条件付き更新`: conditional update
+- `higher-order function should be 高階関数`: higher-order function
+- `async refresh should be 非同期リフレッシュ`: async refresh
+- `query acceleration should be クエリアクセラレーション`: query acceleration
+- `segment file should be セグメントファイル`: segment file
+- `Hybrid row-column storage should be 行と列のハイブリッドストレージ`: Hybrid row-column storage
+- `Bitmap index should be ビットマップインデックス`: Bitmap index
+- `Bloom filter index should be ブルームフィルターインデックス`: Bloom filter index
+- `shared-data should be 共有データ`: shared-data
+- `shared-nothing should be 共有なし`: shared-nothing
+- `object storage should be オブジェクトストレージ`: object storage
+- `logical view should be ビュー`: logical view
+- `join should be ジョイン`: join
