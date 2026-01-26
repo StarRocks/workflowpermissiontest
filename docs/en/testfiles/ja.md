@@ -1,7 +1,7 @@
 - `FEs should be FE`: FE
 - `BEs should be BE`: BE
-- `distributed architecture should be &da 分散アーキテクチャ`: distributed architecture
-- `distributed-architecture should be *da`: distributed-architecture
+- `distributed architecture should be 分散アーキテクチャ`: distributed architecture
+- `distributed-architecture should be 分散アーキテクチャ`: distributed-architecture
 - `Data loading should be データロード`: Data loading
 - `Data unloading should be データアンロード`: Data unloading
 - `load should be ロード`: load
@@ -21,9 +21,9 @@
 - `native vectorized engine should be ネイティブベクトル化エンジン`: native vectorized engine
 - `vectorized query engine should be ベクトル化クエリエンジン`: vectorized query engine
 - `query federation/federated query should be フェデレーションクエリ`: query federation/federated query
-- `query plan should be &qp クエリプラン`: query plan
-- `query planning should be *qp`: query planning
-- `query analysis should be *qp`: query analysis
+- `query plan should be クエリプラン`: query plan
+- `query planning should be クエリプラン`: query planning
+- `query analysis should be クエリプラン`: query analysis
 - `columnar storage should be 列指向（カラムナ）ストレージ`: columnar storage
 - `row storage should be 行指向（ロウ）ストレージ`: row storage
 - `intelligent materialized view should be インテリジェントなマテリアライズドビュー`: intelligent materialized view
@@ -33,8 +33,8 @@
 - `asynchronous materialized view should be 非同期マテリアライズドビュー`: asynchronous materialized view
 - `unified batch and streaming, batch-stream integrated should be バッチストリーム統合`: unified batch and streaming, batch-stream integrated
 - `high availability should be 高可用性`: high availability
-- `high concurrency should be &hc 高い同時実行性`: high concurrency
-- `high-concurrency should be *hc`: high-concurrency
+- `high concurrency should be 高い同時実行性`: high concurrency
+- `high-concurrency should be 高い同時実行性`: high-concurrency
 - `high scalability should be 高拡張性`: high scalability
 - `data ingestion should be データ取り込み`: data ingestion
 - `denormalized table/flat table should be 非正規化テーブル`: denormalized table/flat table
