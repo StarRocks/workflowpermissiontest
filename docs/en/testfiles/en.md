@@ -1,0 +1,137 @@
+- `数据导入 should be Data loading`: Data loading
+- `数据导出 should be Data unloading`: Data unloading
+- `导入 should be load`: load
+- `内表 should be native table`: native table
+- `存算分离表 should be Cloud-native table`: Cloud-native table
+- `外部表 should be External Table`: External Table
+- `文件外部表 should be File External Table`: File External Table
+- `Hive 外表 should be Hive external table`: Hive external table
+- `数据库模式层次结构 should be hierarchy of data objects`: hierarchy of data objects
+- `存储分层 should be storage layering`: storage layering
+- `存算分离 should be separation of storage and compute`: separation of storage and compute
+- `存算分离模式 should be shared-data mode`: shared-data mode
+- `存算一体模式 should be shared-nothing mode`: shared-nothing mode
+- `存算分离集群 should be shared-data cluster`: shared-data cluster
+- `存算一体集群 should be shared-nothing cluster`: shared-nothing cluster
+- `0数据迁移 should be zero-migration`: zero-migration
+- `原生向量化引擎 should be native vectorized engine`: native vectorized engine
+- `联邦查询 should be federated query`: federated query
+- `列式存储 should be columnar storage`: columnar storage
+- `行存储 should be row storage`: row storage
+- `智能物化视图 should be intelligent materialized view`: intelligent materialized view
+- `基表 should be base table`: base table
+- `物化视图 should be materialized view`: materialized view
+- `同步物化视图 should be synchronous materialized view`: synchronous materialized view
+- `异步物化视图 should be asynchronous materialized view`: asynchronous materialized view
+- `流批一体 should be unified batch and streaming`: unified batch and streaming
+- `高可用 should be high availability`: high availability
+- `高可扩展性 should be high scalability`: high scalability
+- `数据摄取 should be data ingestion`: data ingestion
+- `大宽表 should be denormalized table/flat table`: denormalized table/flat table
+- `预聚合 should be pre-aggregation`: pre-aggregation
+- `聚合查询 should be aggregate query`: aggregate query
+- `星形模型 should be star schema`: star schema
+- `雪花模型 should be snowflake schema`: snowflake schema
+- `点查询 should be point query`: point query
+- `表模型 should be table type`: table type
+- `明细表 should be Duplicate Key table`: Duplicate Key table
+- `聚合表 should be Aggregate table`: Aggregate table
+- `主键表 should be Primary Key table`: Primary Key table
+- `更新表 should be Unique Key table`: Unique Key table
+- `数据清洗 should be data cleaning`: data cleaning
+- `全局字典 should be global dictionary`: global dictionary
+- `全局低基数字典优化 should be global dictionary for low-cardinality optimization`: global dictionary for low-cardinality optimization
+- `低基数 should be low cardinality`: low cardinality
+- `仓储物流 should be warehousing logistics`: warehousing logistics
+- `查询性能 should be query performance`: query performance
+- `数据采集 should be data acquisition`: data acquisition
+- `多表关联查询 should be multi-table join query`: multi-table join query
+- `CBO优化器 should be cost-based optimizer`: CBO optimizer
+- `存算分离 should be separation of storage and compute`: separation of storage and compute
+- `成本估算 should be cost estimation`: cost estimation
+- `二叉树 should be binary tree`: binary tree
+- `数据分析 should be data analytics`: data analytics
+- `数据湖分析 should be data lake analytics`: data lake analytics
+- `明细数据 should be detailed data`: detailed data
+- `去重 should be distinct count`: distinct count
+- `精准去重 should be exact distinct count`: exact distinct count
+- `近似去重 should be approximate distinct count`: approximate distinct count
+- `表结构 should be table schema`: table schema
+- `排序键 should be sort key`: sort key
+- `分桶键 should be bucketing key`: bucketing key
+- `分区列 should be partitioning column`: partitioning column
+- `分区键 should be partition key`: partition key
+- `随机分桶 should be random bucketing`: random bucketing
+- `分区方式 should be partitioning method`: partitioning method
+- `自动分区 should be automatic partitioning`: automatic partitioning
+- `动态分区 should be dynamic partitioning`: dynamic partitioning
+- `表达式分区 should be expresion partitioning`: expresion partitioning
+- `LIST 分区 should be list partitioning`: List Partitioning
+- `副本 should be replica`: replica
+- `用户画像 should be user profiling`: user profiling
+- `用户留存 should be user retention`: user retention
+- `精准营销 should be precision marketing`: precision marketing
+- `群体分析 should be group analysis`: group analysis
+- `延迟物化 should be late materialization`: late materialization
+- `数据局部性 should be data locality`: data locality
+- `前缀索引 should be prefix index`: prefix index
+- `后置列 should be suffix column`: suffix column
+- `前置列 should be prefix column`: prefix column
+- `分级存储 should be tiered storage`: tiered storage
+- `倒排索引 should be inverted indexing`: inverted indexing
+- `近似算法 should be approximation algorithm`: approximation algorithm
+- `嵌套查询 should be nested query`: nested query
+- `内存泄漏 should be memory leak`: memory leak
+- `内存膨胀 should be memory bloat`: memory bloat
+- `二次分区 should be secondary partitioning`: secondary partitioning
+- `分区裁剪 should be pruning`: pruning
+- `分区文件 should be partition file`: partition file
+- `抽象语法树 should be abstract syntax tree`: abstract syntax tree
+- `常量折叠 should be constant folding`: constant folding
+- `常量传播 should be constant propagation`: constant propagation
+- `悲观加锁 should be pessimistic locking`: pessimistic locking
+- `乐观加锁 should be optimistic locking`: optimistic locking
+- `滚动升级 should be rolling update`: rolling update
+- `分层搜索 should be stratified search`: stratified search
+- `统一搜索 should be unified search`: unified search
+- `给表添加数据 should be populate a table`: populate a table
+- `工作目录 should be working directory`: working directory
+- `计算节点 should be compute node`: compute node
+- `计算引擎 should be compute engine`: compute engine
+- `等深直方图 should be equi-height histogram`: equi-height histogram
+- `等宽直方图 should be equi-width histogram`: equi-width histogram
+- `分页查询 should be paginated query`: paginated query
+- `相关列 should be correlated columns`: correlated columns
+- `字面量 should be literal`: literal
+- `生成列 should be generated column`: generated column
+- `自增列 should be auto increment`: auto increment
+- `云原生 should be cloud-native`: cloud-native
+- `持久化索引 should be persistent index`: persistent index
+- `工具函数 should be utility function`: utility function
+- `聚合函数 should be aggregate function`: aggregate function
+- `中间结果落盘 should be spill to disk`: spill to disk
+- `查询改写 should be query rewrite`: query rewrite
+- `数据均衡 should be data re-distribution`: data re-distribution
+- `本地磁盘 should be local disk`: local disk
+- `自动降冷 should be automatic cooldown`: automatic cooldown
+- `存储介质 should be storage medium`: storage medium
+- `垃圾回收 should be garbage collection`: garbage collection
+- `会话变量 should be session variable`: session variable
+- `全局变量 should be global variable`: global variable
+- `大查询 should be big query`: big query
+- `分类器 should be classifier`: classifier
+- `存储卷 should be storage volume`: storage volume
+- `远端存储 should be remote storage`: remote storage
+- `基数保持 JOIN should be cardinality-preserving join`: cardinality-preserving join
+- `并行度 should be parallelism`: parallelism
+- `部分列更新 should be partial update`: partial update
+- `条件更新 should be conditional update`: conditional update
+- `高阶函数 should be higher-order function`: higher-order function
+- `异步刷新 should be async refresh`: async refresh
+- `查询加速 should be query acceleration`: query acceleration
+- `Segment 文件 should be segment file`: Segment 文件
+- `行列混存 should be Hybrid row-column storage`: Hybrid row-column storage
+- `List 分区 should be List Partitioning`: List Partitioning
+- `Range 分区 should be Range Partitioning`: Range Partitioning
+- `Bitmap 索引 should be Bitmap index`: Bitmap 索引
+- `Bloom filter 索引 should be Bloom filter index`: Bloom filter 索引
