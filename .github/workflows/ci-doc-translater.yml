@@ -13,28 +13,19 @@ jobs:
     steps:
       - name: Get list of docs-maintainers
         run: |
-          # Fetch the list of users in the organization team docs-maintainer
           DOC_MEMBERSHIP_PAT=${{ secrets.DOC_MEMBERSHIP_PAT || secrets.GITHUB_TOKEN }}
           DOCS_MAINTAINERS=$(curl -s -H "Authorization: token $DOC_MEMBERSHIP_PAT" \
           "https://api.github.com/orgs/starrocks/teams/docs-maintainer/members" | jq -r '.[].login')
-
-          # Save the allowlisted users in a file
           echo "$DOCS_MAINTAINERS" > allowlisted_users.txt
-          echo "Allowlisted users:"
-          cat allowlisted_users.txt
 
       - name: Verify approver membership
         id: verify-approver
         run: |
             APPROVER="${{ github.event.comment.user.login }}"
-            echo "Approver: $APPROVER"
-
             if grep -q --line-regexp "$APPROVER" allowlisted_users.txt; then
-              echo "User $APPROVER is in the allowlist."
               echo "is_allowlisted=true" >> $GITHUB_OUTPUT
             else
               echo "::error::User $APPROVER is not authorized."
-              echo "is_allowlisted=false" >> $GITHUB_OUTPUT
               exit 1
             fi
 
@@ -47,7 +38,6 @@ jobs:
       - name: Get PR Information
         id: pr_data
         run: |
-          # Fetch PR details to get the base branch name and head ref
           PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "${{ github.event.issue.pull_request.url }}")
           echo "base_ref=$(echo $PR_JSON | jq -r '.base.ref')" >> $GITHUB_OUTPUT
@@ -58,8 +48,8 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
-          # Compare against the base branch (e.g. main) to see ALL files in the PR
           base_sha: ${{ steps.pr_data.outputs.base_ref }}
+          [cite_start]json: true  # <--- FORCE JSON OUTPUT [cite: 500]
 
       - name: Get Checkbox State
         id: get_checks
@@ -77,10 +67,13 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BODY: ${{ steps.get_checks.outputs.result }}
-          FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          # Use the JSON output to handle file lists reliably
+          FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files_json }}
         run: |
           pip install -r docs/translation/requirements.txt
-          for FILE in $FILES; do
+          
+          # Use jq to iterate over the JSON array of files
+          for FILE in $(echo "$FILES_JSON" | jq -r '.[]'); do
             # Only process files in docs/lang/ directories
             if [[ "$FILE" =~ ^docs/(en|zh|ja)/ ]]; then
               SRC=$(echo $FILE | cut -d'/' -f2)
@@ -91,7 +84,9 @@ jobs:
                 GLOBAL_STR=" [x] **$FULL_LANG ($LANG)** for **ALL** missing files"
                 INDIVIDUAL_STR=" [x] **$LANG** for \`$FILE\`"
                 
+                # Check for matches
                 if [[ "$BODY" == *"$GLOBAL_STR"* ]] || [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
+                  echo "🚀 Starting translation for $FILE to $LANG"
                   python docs/translation/translate.py -l $LANG --files "$FILE"
                 fi
               done
@@ -103,17 +98,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Check if there are changes in the docs directory
           if [[ -n $(git status --porcelain docs/) ]]; then
             git add docs/
             git commit -m "docs: automated translation via Gemini [skip ci]"
-            
-            # Rebase to handle any commits pushed by humans while the bot was working
             git pull --rebase origin ${{ steps.pr_data.outputs.head_ref }}
-            
-            # Push specifically to the PR head branch
             git push origin HEAD:refs/heads/${{ steps.pr_data.outputs.head_ref }}
-          else
-            echo "No translation changes to commit."
           fi
