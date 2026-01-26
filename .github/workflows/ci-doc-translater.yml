@@ -72,11 +72,11 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BODY: ${{ steps.get_checks.outputs.result }}
-          # Use the JSON output to handle file lists reliably
-          FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files_json }}
+          # FIX: Map FILES_JSON to the standard output variable
+          FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           pip install -r docs/translation/requirements.txt
-          
+
           # Use jq to iterate over the JSON array of files
           for FILE in $(echo "$FILES_JSON" | jq -r '.[]'); do
             # Only process files in docs/lang/ directories
