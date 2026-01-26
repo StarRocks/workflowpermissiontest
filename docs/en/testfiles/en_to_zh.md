@@ -1,3 +1,14 @@
+```
+This comment is a code block to keep it from getting translated.
+The entries to the right of the colon should:
+- Be in Chinese in the dir docs/testfiles/zh/
+- Be in English in the dir docs/testfiles/en
+
+The content to the left of the colon should not be translated,
+and the text to the right of "should be" must match the translated
+text in the docs/testfiles/zh/ dir
+```
+
 - `FEs should be FE`: FEs
 - `BEs should be BE`: BEs
 - `Data loading should be 数据导入`: Data loading

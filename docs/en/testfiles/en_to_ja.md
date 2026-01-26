@@ -1,3 +1,14 @@
+```
+This comment is a code block to keep it from getting translated.
+The entries to the right of the colon should:
+- Be in English in the dir docs/testfiles/en/
+- Be in Japanese in the dir docs/testfiles/ja/
+
+The content to the left of the colon should not be translated,
+and the text to the right of "should be" must match the translated
+text in the docs/testfiles/ja/ dir
+```
+
 - `FEs should be FE`: FE
 - `BEs should be BE`: BE
 - `distributed architecture should be 分散アーキテクチャ`: distributed architecture
