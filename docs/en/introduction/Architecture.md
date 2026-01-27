@@ -60,7 +60,7 @@ The shared-data architecture maintains as simple an architecture as its shared-n
 
 #### Nodes
 
-Coordinator nodes in the shared-data architecture provide the same functions as FEs in the shared-nothing architecture.
+FEs in the shared-data architecture provide the same functions as in the shared-nothing architecture.
 
 BEs are replaced with CNs (Compute Nodes), and the storage function is offloaded to object storage or HDFS. CNs are stateless compute nodes that perform all the functions of BEs, except for the storage of data.
 
