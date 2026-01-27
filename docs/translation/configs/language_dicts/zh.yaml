@@ -11,6 +11,8 @@ Hive external table: Hive 外表
 hierarchy of data objects: 数据库模式层次结构
 storage layering: 存储分层
 separation of storage and compute: 存算分离 
+shared-nothing: 存算一体
+shared-data: 存算分离
 shared-data mode: 存算分离模式
 shared-nothing mode: 存算一体模式
 shared-data cluster: 存算分离集群
