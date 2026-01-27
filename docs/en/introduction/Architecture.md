@@ -19,7 +19,7 @@ StarRocks supports shared-nothing (Each BE has a portion of the data on its loca
 
 Local storage provides improved query latency for real-time queries.
 
-As a typical massively parallel processing (MPP) database StarRocks supports the shared-nothing architecture. In this architecture, BEs are responsible for both data storage and computation. Direct access to local data on the BE mode allows for local computation, avoiding data transfer and data copying, and providing ultra-fast query and analytics performance. This architecture supports multi-replica data storage, enhancing the cluster's ability to handle high-concurrency queries and ensuring data reliability. It is well-suited for scenarios that pursue optimal query performance.
+As a typical massively parallel processing (MPP) database StarRocks supports the shared-nothing architecture. In this architecture, BEs are responsible for both data storage and computation. Direct access to local data on the BE mode allows for local computation, avoiding data transfer and data copying, and providing ultra-fast query and analytics performance. This architecture supports multi-replica data storage, enhancing the cluster's ability to handle high concurrency queries and ensuring data reliability. It is well-suited for scenarios that pursue optimal query performance.
 
 ![shared-data-arch](../_assets/shared-nothing.png)
 
@@ -60,7 +60,7 @@ The shared-data architecture maintains as simple an architecture as its shared-n
 
 #### Nodes
 
-Coordinator nodes in the shared-data architecture provide the same functions as FEs in the shared-nothing architecture.
+FEs in the shared-data architecture provide the same functions as in the shared-nothing architecture.
 
 BEs are replaced with CNs (Compute Nodes), and the storage function is offloaded to object storage or HDFS. CNs are stateless compute nodes that perform all the functions of BEs, except for the storage of data.
 
