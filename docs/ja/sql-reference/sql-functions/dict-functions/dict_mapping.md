@@ -4,11 +4,11 @@ displayed_sidebar: docs
 
 # dict_mapping
 
-辞書テーブルで指定されたキーにマッピングされた値を返します。
+指定されたキーにマッピングされた値をディクショナリテーブルから返します。
 
-この関数は主に、グローバル辞書テーブルの適用を簡素化するために使用されます。ターゲットテーブルへのデータロード中に、StarRocks はこの関数の入力パラメータを使用して、辞書テーブルから指定されたキーにマッピングされた値を自動的に取得し、その値をターゲットテーブルにロードします。
+この関数は、グローバルディクショナリテーブルの適用を簡素化するために主に使用されます。データをターゲットテーブルにロードする際、StarRocks はこの関数の入力パラメータを使用して、ディクショナリテーブルから指定されたキーにマッピングされた値を自動的に取得し、その値をターゲットテーブルにロードします。
 
-v3.2.5 以降、StarRocks はこの関数をサポートしています。また、現在の StarRocks の共有データモードでは、この関数はサポートされていません。
+v3.2.5 以降、StarRocks はこの関数をサポートしています。また、現在 StarRocks のストレージとコンピュートの分離モードでは、この機能はサポートされていません。
 
 ## 構文
 
@@ -22,29 +22,29 @@ key_column_expr ::= <column_name> | <expr>
 
 ## パラメータ
 
-- 必須パラメータ:
-  - `[<db_name>.]<dict_table>`: 辞書テーブルの名前。主キーテーブルである必要があります。サポートされているデータ型は VARCHAR です。
-  - `key_column_expr_list`: 辞書テーブルのキー列の式リスト。1 つまたは複数の `key_column_exprs` が含まれます。`key_column_expr` は、辞書テーブルのキー列の名前、または特定のキーまたはキー式にすることができます。
+- 必須パラメータ：
+  - `[<db_name>.]<dict_table>`：ディクショナリテーブルの名前。主キーテーブルである必要があります。サポートされているデータ型は VARCHAR です。
+  - `key_column_expr_list`：ディクショナリテーブルのキー列の式リスト。1 つ以上の `key_column_exprs` が含まれます。`key_column_expr` は、ディクショナリテーブルのキー列の名前、または特定のキーもしくはキー式にすることができます。
 
-    この式リストには、辞書テーブルのすべての主キー列を含める必要があります。つまり、式の総数は、辞書テーブルの主キー列の総数と一致する必要があります。したがって、辞書テーブルが複合主キーを使用する場合、このリストの式は、テーブルスキーマで定義された主キー列に対応する必要があります。このリストの複数の式は、カンマ (`,`) で区切られます。また、`key_column_expr` が特定のキーまたはキー式である場合、その型は、辞書テーブル内の対応する主キー列の型と一致する必要があります。
+    この式リストには、ディクショナリテーブルのすべての主キー列を含める必要があります。つまり、式の合計数はディクショナリテーブルの主キー列の合計数と一致する必要があります。したがって、ディクショナリテーブルが複合主キーを使用する場合、このリストの式は、テーブルスキーマで定義された主キー列に順番に対応する必要があります。このリストの複数の式は、カンマ (`,`) で区切られます。また、`key_column_expr` が特定のキーまたはキー式である場合、その型はディクショナリテーブルの対応する主キー列の型と一致する必要があります。
 
-- オプションのパラメータ:
-  - `<value_column>`: 値列の名前。これはマッピング列でもあります。値列が指定されていない場合、デフォルトの値列は辞書テーブルの AUTO_INCREMENT 列です。値列は、自動インクリメント列と主キーを除く、辞書テーブル内の任意の列として定義することもできます。列のデータ型に制限はありません。
-  - `<null_if_not_exist>` (オプション): キーが辞書テーブルに存在しない場合に返すかどうか。有効な値:
-    - `true`: キーが存在しない場合、Null が返されます。
-    - `false` (デフォルト): キーが存在しない場合、例外がスローされます。
+- オプションのパラメータ：
+  - `<value_column>`：値列の名前。つまり、マッピング列です。値列が指定されていない場合、デフォルトの値列はディクショナリテーブルの AUTO_INCREMENT 列です。値列は、自動インクリメント列と主キーを除く、ディクショナリテーブルの任意の列として定義することもできます。この列のデータ型に制限はありません。
+  - `<null_if_not_exist>`（オプション）：ディクショナリテーブルにキーが存在しない場合に null を返すかどうか。有効な値：
+    - `true`：キーが存在しない場合、Null を返します。
+    - `false`（デフォルト）：キーが存在しない場合、例外をスローします。
 
 ## 戻り値
 
-戻り値のデータ型は、値列のデータ型と一貫性を保ちます。値列が辞書テーブルの自動インクリメント列である場合、戻り値のデータ型は BIGINT です。
+戻り値の型は、値列のデータ型と一致します。値列がディクショナリテーブルの自動インクリメント列である場合、戻り値の型は BIGINT です。
 
-ただし、指定されたキーにマッピングされた値が見つからない場合、`<null_if_not_exist>` パラメータが `true` に設定されていると、`NULL` が返されます。パラメータが `false` (デフォルト) に設定されている場合、エラー `query failed if record not exist in dict table` が返されます。
+ただし、指定されたキーにマッピングされた値が見つからない場合、`<null_if_not_exist>` パラメータが `true` に設定されていると、`NULL` が返されます。パラメータが `false`（デフォルト）に設定されている場合、エラー `query failed if record not exist in dict table` が返されます。
 
 ## 例
 
-**例 1: 辞書テーブルからキーにマッピングされた値を直接クエリします。**
+**例 1：ディクショナリテーブルからキーにマッピングされた値を直接クエリします。**
 
-1. 辞書テーブルを作成し、シミュレートされたデータをロードします。
+1. ディクショナリテーブルを作成し、サンプルデータをロードします。
 
       ```SQL
       MySQL [test]> CREATE TABLE dict (
@@ -72,9 +72,9 @@ key_column_expr ::= <column_name> | <expr>
 
       > **注意**
       >
-      > 現在、`INSERT INTO` ステートメントは部分的な更新をサポートしていません。したがって、`dict` のキー列に挿入される値が重複していないことを確認してください。そうしないと、同じキー列の値を辞書テーブルに複数回挿入すると、値列のマッピングされた値が変更されます。
+      > 現在、`INSERT INTO` ステートメントは部分更新をサポートしていません。したがって、`dict` のキー列に挿入される値が重複しないようにしてください。そうしないと、同じキー列の値をディクショナリテーブルに複数回挿入すると、値列にマッピングされた値が変更される可能性があります。
 
-2. 辞書テーブル内のキー `a1` にマッピングされた値をクエリします。
+2. ディクショナリテーブルでキー `a1` にマッピングされた値をクエリします。
 
     ```SQL
     MySQL [test]> SELECT dict_mapping('dict', 'a1');
@@ -86,26 +86,26 @@ key_column_expr ::= <column_name> | <expr>
     1 row in set (0.01 sec)
     ```
 
-**例 2: テーブル内のマッピング列は、`dict_mapping` 関数を使用して生成された列として構成されています。したがって、StarRocks は、このテーブルにデータをロードするときに、キーにマッピングされた値を自動的に取得できます。**
+**例 2：テーブル内のマッピング列は、`dict_mapping` 関数で生成された列を使用するように構成されています。したがって、StarRocks はこのテーブルにデータをロードする際に、キーにマッピングされた値を自動的に取得できます。**
 
-1. データテーブルを作成し、`dict_mapping('dict', order_uuid)` を使用してマッピング列を生成された列として構成します。
+1. データテーブルを作成し、`dict_mapping('dict', order_uuid)` を使用してマッピング列を生成列として構成します。
 
     ```SQL
     CREATE TABLE dest_table1 (
         id BIGINT,
-        -- この列は、STRING 型の注文番号を記録します。これは、例 1 の dict テーブルの order_uuid 列に対応します。
+        -- This column records the STRING type order number, corresponding to the order_uuid column in the dict table in Example 1.
         order_uuid STRING, 
         batch int comment 'used to distinguish different batch loading',
-        -- この列は、order_uuid 列とマッピングされた BIGINT 型の注文番号を記録します。
-        -- この列は dict_mapping で構成された生成された列であるため、この列の値は、データロード中に例 1 の dict テーブルから自動的に取得されます。
-        -- その後、この列は、重複排除および JOIN クエリに直接使用できます。
+        -- This column records the BIGINT type order number which mapped with the order_uuid column.
+        -- Because this column is a generated column configured with dict_mapping, the values in this column are automatically obtained from the dict table in Example 1 during data loading.
+        -- Subsequently, this column can be directly used for deduplication and JOIN queries.
         order_id_int BIGINT AS dict_mapping('dict', order_uuid)
     )
     DUPLICATE KEY (id, order_uuid)
     DISTRIBUTED BY HASH(id);
     ```
 
-2. `order_id_int` 列が `dict_mapping('dict', 'order_uuid')` として構成されているこのテーブルにシミュレートされたデータをロードすると、StarRocks は `dict` テーブルのキーと値のマッピング関係に基づいて、`order_id_int` 列に値を自動的にロードします。
+2. このテーブルにサンプルデータをロードすると、`order_id_int` 列は `dict_mapping('dict', 'order_uuid')` で構成されているため、StarRocks は `dict` テーブルのキーと値の間のマッピングに基づいて、値を `order_id_int` 列に自動的にロードします。
 
       ```SQL
       MySQL [test]> INSERT INTO dest_table1(id, order_uuid, batch) VALUES (1, 'a1', 1), (2, 'a1', 1), (3, 'a3', 1), (4, 'a3', 1);
@@ -124,13 +124,13 @@ key_column_expr ::= <column_name> | <expr>
       4 rows in set (0.02 sec)
       ```
 
-    この例での `dict_mapping` の使用は、[重複排除計算と JOIN クエリ](../../../using_starrocks/query_acceleration_with_auto_increment.md) を高速化できます。正確な重複排除を高速化するためにグローバル辞書を構築するための以前のソリューションと比較して、`dict_mapping` を使用したソリューションは、より柔軟でユーザーフレンドリーです。マッピング値は、「キーと値の間のマッピング関係をテーブルにロードする」段階で辞書テーブルから直接取得されるためです。マッピング値を取得するために辞書テーブルを結合するステートメントを作成する必要はありません。さらに、このソリューションはさまざまなデータロード方法をサポートしています。<!--詳細な使用法については、xxx を参照してください。-->
+    この例で `dict_mapping` を使用すると、[重複排除計算と JOIN クエリ](../../../using_starrocks/query_acceleration_with_auto_increment.md) を高速化できます。正確な重複排除を高速化するためにグローバルディクショナリを構築する以前のソリューションと比較して、`dict_mapping` を使用するソリューションはより柔軟でユーザーフレンドリーです。マッピング値は、「キーと値の間のマッピング関係をテーブルにロードする」段階でディクショナリテーブルから直接取得されるためです。マッピング値を取得するためにディクショナリテーブルを結合するステートメントを作成する必要はありません。さらに、このソリューションはさまざまなデータインポート方法をサポートしています。 <!--For detailed usage, please refer to xxx.-->
 
-**例 3: テーブル内のマッピング列が生成された列として構成されていない場合は、テーブルにデータをロードするときに、マッピング列の `dict_mapping` 関数を明示的に構成し、キーにマッピングされた値を取得する必要があります。**
+**例 3：テーブル内のマッピング列が生成列として構成されていない場合、テーブルにデータをロードする際に、マッピング列に `dict_mapping` 関数を明示的に構成して、キーにマッピングされた値を取得する必要があります。**
 
 > **注意**
 >
-> 例 3 と例 2 の違いは、データテーブルにインポートするときに、インポートコマンドを変更して、マッピング列の `dict_mapping` 式を明示的に構成する必要があることです。
+> 例 3 と例 2 の違いは、データテーブルへのインポート時に、マッピング列に `dict_mapping` 式を明示的に構成するために、インポートコマンドを変更する必要があることです。
 
 1. テーブルを作成します。
 
@@ -145,7 +145,7 @@ key_column_expr ::= <column_name> | <expr>
     DISTRIBUTED BY HASH(id);
     ```
 
-2. シミュレートされたデータがこのテーブルにロードされるとき、`dict_mapping` を構成することにより、辞書テーブルからマッピングされた値を取得します。
+2. このテーブルにサンプルデータをロードすると、`dict_mapping` を構成して、ディクショナリテーブルからマッピングされた値を取得できます。
 
     ```SQL
     MySQL [test]> INSERT INTO dest_table2 VALUES (1, 'a1', dict_mapping('dict', 'a1'), 1);
@@ -161,18 +161,18 @@ key_column_expr ::= <column_name> | <expr>
     1 row in set (0.02 sec)
     ```
 
-**例 4: null_if_not_exist モードを有効にする**
+**例 4：null_if_not_exist モードを有効にする**
 
-`<null_if_not_exist>` モードが無効になっていて、辞書テーブルに存在しないキーにマッピングされた値がクエリされると、`NULL` ではなくエラーが返されます。これにより、データ行のキーが最初に辞書テーブルにロードされ、そのマッピングされた値 (辞書 ID) が、そのデータ行がターゲットテーブルにロードされる前に生成されることが保証されます。
+`<null_if_not_exist>` モードが無効になっており、ディクショナリテーブルに存在しないキーにマッピングされた値をクエリすると、`NULL` ではなくエラーが返されます。これにより、データ行のキーが最初にディクショナリテーブルにロードされ、そのデータ行がターゲットテーブルにロードされる前に、そのマッピングされた値（ディクショナリ ID）が生成されることが保証されます。
 
 ```SQL
 MySQL [test]>  SELECT dict_mapping('dict', 'b1', true);
 ERROR 1064 (HY000): Query failed if record not exist in dict table.
 ```
 
-**例 5: 辞書テーブルが複合主キーを使用している場合、クエリ時にすべての主キーを指定する必要があります。**
+**例 5：ディクショナリテーブルが複合主キーを使用する場合、クエリ時にすべての主キーを指定する必要があります。**
 
-1. 複合主キーを持つ辞書テーブルを作成し、シミュレートされたデータをロードします。
+1. 複合主キーを持つディクショナリテーブルを作成し、サンプルデータをロードします。
 
       ```SQL
       MySQL [test]> CREATE TABLE dict2 (
@@ -180,7 +180,7 @@ ERROR 1064 (HY000): Query failed if record not exist in dict table.
           order_date DATE, 
           order_id_int BIGINT AUTO_INCREMENT
       )
-      PRIMARY KEY (order_uuid,order_date)  -- 複合主キー
+      PRIMARY KEY (order_uuid,order_date)  -- Composite Primary Key
       DISTRIBUTED BY HASH (order_uuid,order_date)
       ;
       Query OK, 0 rows affected (0.02 sec)
@@ -201,13 +201,13 @@ ERROR 1064 (HY000): Query failed if record not exist in dict table.
       3 rows in set (0.01 sec)
       ```
 
-2. 辞書テーブル内のキーにマッピングされた値をクエリします。辞書テーブルには複合主キーがあるため、`dict_mapping` ですべての主キーを指定する必要があります。
+2. ディクショナリテーブルでキーにマッピングされた値をクエリします。ディクショナリテーブルには複合主キーがあるため、`dict_mapping` ですべての主キーを指定する必要があります。
 
       ```SQL
       SELECT dict_mapping('dict2', 'a1', cast('2023-11-22' as DATE));
       ```
 
-   主キーが 1 つだけ指定されている場合、エラーが発生することに注意してください。
+   主キーを 1 つだけ指定すると、エラーが発生することに注意してください。
 
       ```SQL
       MySQL [test]> SELECT dict_mapping('dict2', 'a1');
