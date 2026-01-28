@@ -86,6 +86,7 @@ jobs:
 
   Generate_issue_for_doc_team:
     if: ${{ always() }}
+    needs: [grab_feedback_from_posthog, check_Algolia_usage, PRs_needing_attention,  ]
     name: Report
     runs-on: ubuntu-latest
     steps:
