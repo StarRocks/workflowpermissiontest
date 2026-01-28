@@ -85,11 +85,11 @@ jobs:
            >> feedback.md
 
   Generate_issue_for_doc_team:
+    if: ${{ always() }}
     name: Report
     runs-on: ubuntu-latest
     steps:
       - name: Create issue from file
-        if: always
         id: weekly-feedback-report
         uses: peter-evans/create-issue-from-file@ceef9be92406ace67ab5421f66570acf213ec395
         with:
