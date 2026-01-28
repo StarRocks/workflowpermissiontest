@@ -12,7 +12,7 @@ permissions:
   issues: write
 
 jobs:
-  Look for PRs needing attention:
+  PRs_needing_attention:
     name: docs-maintainer PRs
     runs-on: ubuntu-latest
     steps:
