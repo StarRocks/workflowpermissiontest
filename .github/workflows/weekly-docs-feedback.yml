@@ -30,6 +30,7 @@ jobs:
           echo "Listing PRs with label: $LABEL" >> feedback.md
           gh pr list --label "$LABEL" --json title,url --jq '.[] | "\(.title) - \(.url)"' >> feedback.md
 
+          gh pr list --label "$LABEL" --json title,url --jq '.[] | "\(.title) - \(.url)"'
       - name: Collect feedback
         run: |
           set -eo pipefail # Ensure the script fails on any command error
