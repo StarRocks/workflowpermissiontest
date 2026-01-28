@@ -31,6 +31,7 @@ jobs:
             docs/ja/**/*.md*
 
       # 3. Generate Checklist (Same logic as before)
+
       - name: Generate Checklist Body
         id: checklist
         uses: actions/github-script@v7
@@ -47,8 +48,11 @@ jobs:
               return;
             }
 
+            // NEW: Updated Contributor-Friendly Message
             let body = "### 🌎 Translation Required?\n";
-            body += "The following languages are missing for your changes. Check the ones you wish to generate:\n\n";
+            body += "Thanks for your doc contribution! The following languages are missing for your changes.\n\n";
+            body += "If you are fluent in any of the missing languages you can add them. If not, a maintainer will take a look and generate the changes below.\n\n";
+            body += "**Maintainer:** Check the ones you wish to generate:\n\n";
             
             body += "#### ⚡ Global Actions\n";
             body += "- [ ] **Japanese (ja)** for **ALL** missing files\n";
@@ -56,6 +60,7 @@ jobs:
             body += "- [ ] **English (en)** for **ALL** missing files\n\n---\n";
 
             files.forEach(file => {
+              // ... (rest of the file loop logic remains the same) ...
               const parts = file.split('/');
               const sourceLang = parts[1]; 
               const targets = ['en', 'zh', 'ja'].filter(l => l !== sourceLang);
@@ -63,7 +68,6 @@ jobs:
               let fileChecklist = "";
               targets.forEach(lang => {
                 const targetPath = file.replace(`docs/${sourceLang}/`, `docs/${lang}/`);
-                // This works because we checked out the merge commit
                 if (!fs.existsSync(targetPath)) {
                   fileChecklist += `- [ ] **${lang}** for \`${file}\`\n`;
                 }
@@ -95,3 +99,15 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: ${{ steps.checklist.outputs.body }}
           edit-mode: replace
+
+      - name: Label PR
+        if: steps.checklist.outputs.body != 'No translatable files detected.'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['docs-maintainer']
+            });

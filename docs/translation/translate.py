@@ -2,6 +2,7 @@ import os
 import yaml
 import argparse
 import re
+import time  # <--- NEW: Import time
 from google import genai
 from google.genai import types
 
@@ -17,7 +18,8 @@ try:
 except Exception as e:
     raise RuntimeError("Failed to initialize Gemini client.") from e
 
-MODEL_NAME = "gemini-2.0-flash" 
+# NEW: Use 1.5-flash for stability and speed
+MODEL_NAME = "gemini-1.5-flash" 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_BASE_PATH = os.path.join(SCRIPT_DIR, "configs")
 
@@ -52,11 +54,10 @@ class StarRocksTranslator:
         self.never_translate_str = self._expand_terms(raw_terms)
         
         # B. Inject into Dictionary as "Identity Rules" (Leader: Leader)
-        # This forces the model to treat them as technical terms defined in the glossary.
         identity_rules = []
         for term in raw_terms:
-            identity_rules.append(f"{term}: {term}")          # Leader: Leader
-            identity_rules.append(f"{term.lower()}: {term.lower()}")  # leader: leader
+            identity_rules.append(f"{term}: {term}")          
+            identity_rules.append(f"{term.lower()}: {term.lower()}")
             
         if self.dictionary_str:
             self.dictionary_str += "\n" + "\n".join(identity_rules)
@@ -66,8 +67,8 @@ class StarRocksTranslator:
     def _expand_terms(self, terms: list) -> str:
         expanded = set()
         for term in terms:
-            expanded.add(term)          # Leader
-            expanded.add(term.lower())  # leader
+            expanded.add(term)
+            expanded.add(term.lower())
         return ", ".join(sorted(expanded))
 
     def _load_yaml_as_list(self, path: str) -> list:
@@ -104,7 +105,6 @@ class StarRocksTranslator:
             return text
             
         for bad, good in self.synonyms.items():
-            # Create a case-insensitive regex pattern to match whole words
             pattern = re.compile(r'\b' + re.escape(bad) + r'\b', re.IGNORECASE)
             text = pattern.sub(good, text)        
         return text
@@ -133,18 +133,14 @@ class StarRocksTranslator:
         source_lang_full = LANG_MAP.get(source_lang, source_lang)
 
         abs_input = os.path.abspath(input_file)
-        # Simple string replace for path calculation
         output_file = abs_input.replace(f"/docs/{source_lang}/", f"/docs/{self.target_lang}/")
         
-        # Check if target exists and is newer than source
         if os.path.exists(output_file) and os.path.getmtime(output_file) >= os.path.getmtime(abs_input):
             print(f"⏩ Skipping {output_file}: Target is up to date.")
             return
 
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-        # Construct System Instruction
-        # Note: We inject ${never_translate} here as a backup constraint
         system_instruction = (self.system_template
                               .replace("${source_lang}", source_lang_full)
                               .replace("${target_lang}", self.target_lang_full)
@@ -155,31 +151,46 @@ class StarRocksTranslator:
             print(f"🔍 [DRY RUN] {source_lang_full} -> {self.target_lang_full} | Input: {input_file}")
             return
         
-        # Read and Normalize Content
         original_content = self._read_file(input_file)
         content_to_process = self.normalize_content(original_content)
         
-        # Construct Human Prompt
         current_human_prompt = (self.human_template
                                 .replace("${target_language}", self.target_lang_full) 
                                 + f"\n\n### CONTENT TO TRANSLATE ###\n\n{content_to_process}")
 
         print(f"🚀 Translating {input_file} to {output_file}...")
-        try:
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                config=types.GenerateContentConfig(system_instruction=system_instruction, temperature=0.0),
-                contents=current_human_prompt
-            )
-            
-            if not response.text:
-                print(f"⚠️ Warning: Gemini returned empty response for {input_file} (Blocked?).")
-                return
+        
+        # NEW: RETRY LOGIC for 429 Errors
+        max_retries = 3
+        base_delay = 2 # seconds
+        translated_text = ""
+        
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=MODEL_NAME,
+                    config=types.GenerateContentConfig(system_instruction=system_instruction, temperature=0.0),
+                    contents=current_human_prompt
+                )
                 
-            translated_text = response.text.strip()
-        except Exception as e:
-            print(f"❌ Gemini API failed for {input_file}: {e}")
-            return
+                if not response.text:
+                    print(f"⚠️ Warning: Gemini returned empty response for {input_file} (Blocked?).")
+                    return
+                    
+                translated_text = response.text.strip()
+                break # Success
+                
+            except Exception as e:
+                # Check for 429 Resource Exhausted
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    if attempt < max_retries - 1:
+                        wait_time = base_delay * (2 ** attempt) # 2s, 4s, 8s
+                        print(f"⏳ Hit rate limit (429). Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                
+                print(f"❌ Gemini API failed for {input_file}: {e}")
+                return
 
         # Clean Markdown fences if Gemini adds them
         if translated_text.startswith("```"):
@@ -188,7 +199,6 @@ class StarRocksTranslator:
             if lines and lines[-1].startswith("```"): lines = lines[:-1]
             translated_text = "\n".join(lines).strip()
 
-        # Validate MDX Tags
         if not self.validate_mdx(original_content, translated_text):
             print(f"❌ Validation warning for {input_file}: Tag mismatch detected.")
 
@@ -211,4 +221,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
+
