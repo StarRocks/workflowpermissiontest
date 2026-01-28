@@ -28,9 +28,11 @@ jobs:
         run: |
           set -eo pipefail # Ensure the script fails on any command error
           echo "## PRs that need attention" > feedback.md
-          gh pr list --label docs-maintainer --json title,url | jq '.[] | "\(.title) - \(.url)"'
-          gh pr list --label docs-maintainer --json title,url | jq '.[] | "\(.title) - \(.url)"' >> feedback.md
           echo "Listing PRs with label: docs-maintainer" >> feedback.md
+          curl -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/starrocks/workflowpermissiontest/pulls?state=open" | jq -r '.[] | select(.labels[]?.name == "docs-maintainer") | "- PR number: \(.number) PR title: [\(.title)](\(.html_url))"' >> feedback.md
+
+          echo "---" >> feedback.md
+
 
       - name: Collect feedback
         run: |
