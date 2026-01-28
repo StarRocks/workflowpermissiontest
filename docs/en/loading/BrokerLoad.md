@@ -2,7 +2,7 @@
 displayed_sidebar: docs
 ---
 
-# Load data from HDFS or cloud storage
+# Load data from object storage or HDFS
 
 import InsertPrivNote from '../_assets/commonMarkdown/insertPrivNote.mdx'
 
