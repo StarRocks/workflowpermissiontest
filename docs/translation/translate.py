@@ -1,4 +1,5 @@
 import os
+import sys
 import yaml
 import argparse
 import re
@@ -34,6 +35,7 @@ class StarRocksTranslator:
         self.target_lang = target_lang
         self.target_lang_full = LANG_MAP.get(target_lang, target_lang)
         self.dry_run = dry_run
+        self.has_errors = False
         
         # 1. Load Templates
         self.system_template = self._read_file(f"{CONFIG_BASE_PATH}/system_prompt.txt")
@@ -230,6 +232,7 @@ class StarRocksTranslator:
 
         if not self.validate_mdx(original_content, translated_text):
             print(f"❌ Validation warning for {input_file}: Tag mismatch detected.")
+            self.has_errors = True
 
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(translated_text)
@@ -247,6 +250,10 @@ def main():
         for f in args.files:
             if f.endswith(('.md', '.mdx')):
                 translator.translate_file(f)
+
+    if translator.has_errors:
+        print("\n🚨 Translation finished with errors. Marking workflow as FAILED.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
