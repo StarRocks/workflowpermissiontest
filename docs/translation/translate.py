@@ -124,6 +124,7 @@ class StarRocksTranslator:
         return re.sub(code_pattern, '', text)
 
     def _chunk_content(self, text: str) -> list[str]:
+        # Split by Level 2 through Level 5 headers for high granularity
         chunks = re.split(r'(?m)^(?=#{2,5}\s)', text)
         return [c for c in chunks if c.strip()]
 
@@ -223,7 +224,6 @@ class StarRocksTranslator:
         full_text = "\n".join(chunk.strip() for chunk in translated_chunks)
         is_valid, val_msg = self.validate_mdx(original_content, full_text)
         
-        # Determine filename based on validation status
         final_output_path = base_output_path if is_valid else f"{base_output_path}.invalid"
         rel_path = os.path.relpath(final_output_path, os.getcwd())
 
@@ -249,17 +249,28 @@ def main():
         for f in args.files:
             translator.translate_file(f)
 
-    with open("translation_summary.md", "w", encoding="utf-8") as f:
-        f.write("### 📝 Translation Report\n\n")
+    # UPDATED: Report uses 'a' (append) mode to handle multiple language runs in one PR
+    report_path = "translation_summary.md"
+    report_exists = os.path.exists(report_path)
+    
+    with open(report_path, "a", encoding="utf-8") as f:
+        if not report_exists:
+            f.write("### 📝 Translation Report\n\n")
+        
+        f.write(f"#### 🌐 Language: {args.lang.upper()}\n")
         if translator.successes:
-            f.write("#### ✅ Successfully Translated\n")
+            f.write("✅ **Successfully Translated:**\n")
             for s in translator.successes: f.write(f"- `{s}`\n")
+        
         if translator.failures:
-            f.write("\n#### ❌ Failures (Action Required)\n")
+            f.write("\n❌ **Failures (Action Required):**\n")
             for fail in translator.failures:
                 f.write(f"**File:** `{fail['file']}`\n```text\n{fail['error']}\n```\n\n")
+        
+        f.write("\n---\n")
 
     if translator.has_errors: sys.exit(1)
 
 if __name__ == "__main__":
     main()
+
