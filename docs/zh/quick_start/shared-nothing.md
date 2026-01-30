@@ -1,4 +1,3 @@
----
 displayed_sidebar: docs
 sidebar_position: 1
 description: "StarRocks in Docker: Query real data with JOINs"
@@ -9,16 +8,16 @@ import Clients from '../_assets/quick-start/_clientsAllin1.mdx'
 import SQL from '../_assets/quick-start/_SQL.mdx'
 import Curl from '../_assets/quick-start/_curl.mdx'
 
-# Deploy StarRocks with Docker
+# 使用 Docker 部署 StarRocks
 
-This tutorial covers:
+本教程涵盖：
 
-- Running StarRocks in a single Docker container
-- Loading two public datasets including basic transformation of the data
-- Analyzing the data with SELECT and JOIN
-- Basic data transformation (the **T** in ETL)
+- 在单个 Docker 容器中运行 StarRocks
+- 导入两个公共数据集，包括数据的基本转换
+- 使用 SELECT 和 JOIN 分析数据
+- 基本数据转换（ETL 中的 **T**）
 
-## Follow along with the video if you prefer
+## 如果您愿意，可以观看视频
 
 <iframe
   width="560"
@@ -30,48 +29,48 @@ This tutorial covers:
   allowfullscreen
 ></iframe>
 
-The data used is provided by NYC OpenData and the National Centers for Environmental Information.
+所使用的数据由 NYC OpenData 和 National Centers for Environmental Information 提供。
 
-Both of these datasets are very large, and because this tutorial is intended to help you get exposed to working with StarRocks we are not going to load data for the past 120 years. You can run the Docker image and load this data on a machine with 4 GB RAM assigned to Docker. For larger fault-tolerant and scalable deployments we have other documentation and will provide that later.
+这两个数据集都非常大，并且由于本教程旨在帮助您了解如何使用 StarRocks，因此我们不会导入过去 120 年的数据。您可以在分配给 Docker 的 4 GB RAM 的机器上运行 Docker 镜像并导入此数据。对于更大、容错和可扩展的部署，我们有其他文档，稍后会提供。
 
-There is a lot of information in this document, and it is presented with the step by step content at the beginning, and the technical details at the end. This is done to serve these purposes in this order:
+本文档包含大量信息，并且以逐步内容的形式在开头呈现，技术细节在结尾呈现。这样做是为了按以下顺序实现这些目的：
 
-1. Allow the reader to load data in StarRocks and analyze that data.
-2. Explain the basics of data transformation during loading.
+1. 允许读者在 StarRocks 中导入数据并分析该数据。
+2. 解释导入期间数据转换的基础知识。
 
 ---
 
-## Prerequisites
+## 前提条件
 
 ### Docker
 
 - [Docker](https://docs.docker.com/engine/install/)
-- 4 GB RAM assigned to Docker
-- 10 GB free disk space assigned to Docker
+- 分配给 Docker 的 4 GB RAM
+- 分配给 Docker 的 10 GB 可用磁盘空间
 
-### SQL client
+### SQL 客户端
 
-You can use the SQL client provided in the Docker environment, or use one on your system. Many MySQL compatible clients will work, and this guide covers the configuration of DBeaver and MySQL Workbench.
+您可以使用 Docker 环境中提供的 SQL 客户端，也可以使用系统上的 SQL 客户端。许多与 MySQL 兼容的客户端都可以工作，本指南涵盖了 DBeaver 和 MySQL Workbench 的配置。
 
 ### curl
 
-`curl` is used to issue the data load job to StarRocks, and to download the datasets. Check to see if you have it installed by running `curl` or `curl.exe` at your OS prompt. If curl is not installed, [get curl here](https://curl.se/dlwiz/?type=bin).
+`curl` 用于向 StarRocks 发出数据导入作业，并下载数据集。通过在操作系统提示符下运行 `curl` 或 `curl.exe` 来检查是否已安装。如果未安装 curl，请[在此处获取 curl](https://curl.se/dlwiz/?type=bin)。
 
 ---
 
-## Terminology
+## 术语
 
 ### FE
 
-Frontend nodes are responsible for metadata management, client connection management, query planning, and query scheduling. Each FE stores and maintains a complete copy of metadata in its memory, which guarantees indiscriminate services among the FEs.
+FE 节点负责元数据管理、客户端连接管理、查询计划和查询调度。每个 FE 在其内存中存储和维护元数据的完整副本，这保证了 FE 之间的无差别服务。
 
 ### BE
 
-Backend nodes are responsible for both data storage and executing query plans.
+BE 节点负责数据存储和执行查询计划。
 
 ---
 
-## Launch StarRocks
+## 启动 StarRocks
 
 ```bash
 docker pull starrocks/allin1-ubuntu
@@ -81,23 +80,23 @@ docker run -p 9030:9030 -p 8030:8030 -p 8040:8040 -itd \
 
 ---
 
-## SQL clients
+## SQL 客户端
 
 <Clients />
 
 ---
 
-## Download the data
+## 下载数据
 
-Download these two datasets to your machine. You can download them to the host machine where you are running Docker, they do not need to be downloaded inside the container.
+将这两个数据集下载到您的机器。您可以将它们下载到运行 Docker 的主机上，不需要在容器内下载。
 
-### New York City crash data
+### 纽约市碰撞数据
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/NYPD_Crash_Data.csv
 ```
 
-### Weather data
+### 天气数据
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/72505394728.csv
@@ -105,14 +104,14 @@ curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-sa
 
 ---
 
-### Connect to StarRocks with a SQL client
+### 使用 SQL 客户端连接到 StarRocks
 
 :::tip
 
-If you are using a client other than the mysql CLI, open that now.
+如果您使用的客户端不是 mysql CLI，请立即打开它。
 :::
 
-This command will run the `mysql` command in the Docker container:
+此命令将在 Docker 容器中运行 `mysql` 命令：
 
 ```sql
 docker exec -it quickstart \
@@ -121,25 +120,25 @@ mysql -P 9030 -h 127.0.0.1 -u root --prompt="StarRocks > "
 
 ---
 
-## Create some tables
+## 创建一些表
 
 <DDL />
 
 ---
 
-## Load two datasets
+## 导入两个数据集
 
-There are many ways to load data into StarRocks. For this tutorial the simplest way is to use curl and StarRocks Stream Load.
+有很多方法可以将数据导入到 StarRocks 中。对于本教程，最简单的方法是使用 curl 和 StarRocks Stream Load。
 
 :::tip
-Open a new shell as these curl commands are run at the operating system prompt, not in the `mysql` client. The commands refer to the datasets that you downloaded, so run them from the directory where you downloaded the files.
+打开一个新的 shell，因为这些 curl 命令是在操作系统提示符下运行的，而不是在 `mysql` 客户端中运行的。这些命令引用您下载的数据集，因此请从下载文件的目录中运行它们。
 
-You will be prompted for a password. You probably have not assigned a password to the MySQL `root` user, so just hit enter.
+系统将提示您输入密码。您可能尚未为 MySQL `root` 用户分配密码，因此只需按 Enter 键即可。
 :::
 
-The `curl` commands look complex, but they are explained in detail at the end of the tutorial. For now, we recommend running the commands and running some SQL to analyze the data, and then reading about the data loading details at the end.
+`curl` 命令看起来很复杂，但本教程的最后会详细解释它们。现在，我们建议运行这些命令并运行一些 SQL 来分析数据，然后在最后阅读有关数据导入详细信息的说明。
 
-### New York City collision data - Crashes
+### 纽约市碰撞数据 - 碰撞事故
 
 ```bash
 curl --location-trusted -u root             \
@@ -153,7 +152,7 @@ curl --location-trusted -u root             \
     -XPUT http://localhost:8030/api/quickstart/crashdata/_stream_load
 ```
 
-Here is the output of the preceding command. The first highlighted section shows what you should expect to see (OK and all but one row inserted). One row was filtered out because it does not contain the correct number of columns.
+以下是上述命令的输出。第一个突出显示的部分显示了您应该看到的内容（OK 和除一行之外的所有行都已插入）。有一行被过滤掉，因为它不包含正确的列数。
 
 ```bash
 Enter host password for user 'root':
@@ -181,11 +180,11 @@ Enter host password for user 'root':
 }%
 ```
 
-If there was an error the output provides a URL to see the error messages. Open this in a browser to find out what happened. Expand the detail to see a sample error message:
+如果出现错误，输出会提供一个 URL 来查看错误消息。在浏览器中打开此 URL 以找出发生了什么。展开详细信息以查看示例错误消息：
 
 <details>
 
-<summary>Reading error messages in the browser</summary>
+<summary>在浏览器中读取错误消息</summary>
 
 ```bash
 Error: Target column count: 29 doesn't match source value column count: 32. Column separator: ',', Row delimiter: '\n'. Row: 09/06/2015,14:15,,,40.6722269,-74.0110059,"(40.6722269, -74.0110059)",,,"R/O 1 BEARD ST. ( IKEA'S 
@@ -194,9 +193,9 @@ Error: Target column count: 29 doesn't match source value column count: 32. Colu
 
 </details>
 
-### Weather data
+### 天气数据
 
-Load the weather dataset in the same manner as you loaded the crash data.
+以与导入碰撞数据相同的方式导入天气数据集。
 
 ```bash
 curl --location-trusted -u root             \
@@ -212,36 +211,36 @@ curl --location-trusted -u root             \
 
 ---
 
-## Answer some questions
+## 回答一些问题
 
 <SQL />
 
 ---
 
-## Summary
+## 总结
 
-In this tutorial you:
+在本教程中，您：
 
-- Deployed StarRocks in Docker
-- Loaded crash data provided by New York City and weather data provided by NOAA
-- Analyzed the data using SQL JOINs to find out that driving in low visibility or icy streets is a bad idea
+- 在 Docker 中部署了 StarRocks
+- 导入了纽约市提供的碰撞数据和 NOAA 提供的天气数据
+- 使用 SQL JOIN 分析了数据，发现低能见度或冰雪路面行车不是一个好主意
 
-There is more to learn; we intentionally glossed over the data transformation done during the Stream Load. The details on that are in the notes on the curl commands below.
+还有更多内容需要学习；我们有意忽略了在 Stream Load 期间完成的数据转换。有关详细信息，请参见下面的 curl 命令注释。
 
 ---
 
-## Notes on the curl commands
+## 关于 curl 命令的说明
 
 <Curl />
 
 ---
 
-## More information
+## 更多信息
 
-[StarRocks table design](../table_design/StarRocks_table_design.md)
+[StarRocks 表设计 ](../table_design/StarRocks_table_design.md)
 
-[Stream Load](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md)
+[Stream Load ](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md)
 
-The [Motor Vehicle Collisions - Crashes](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) dataset is provided by New York City subject to these [terms of use](https://www.nyc.gov/home/terms-of-use.page) and [privacy policy](https://www.nyc.gov/home/privacy-policy.page).
+[机动车辆碰撞 - 碰撞事故](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) 数据集由纽约市提供，受以下 [使用条款](https://www.nyc.gov/home/terms-of-use.page) 和 [隐私政策](https://www.nyc.gov/home/privacy-policy.page) 的约束。
 
-The [Local Climatological Data](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) is provided by NOAA with this [disclaimer](https://www.noaa.gov/disclaimer) and this [privacy policy](https://www.noaa.gov/protecting-your-privacy).
+[本地气候数据](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) 由 NOAA 提供，带有此 [免责声明](https://www.noaa.gov/disclaimer) 和此 [隐私政策](https://www.noaa.gov/protecting-your-privacy)。
