@@ -60,6 +60,8 @@ jobs:
         run: |
           PR_JSON=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "${{ github.event.issue.pull_request.url }}")
+          # NEW: Get the exact SHA of the base
+          echo "base_sha=$(echo $PR_JSON | jq -r '.base.sha')" >> $GITHUB_OUTPUT
           echo "base_ref=$(echo $PR_JSON | jq -r '.base.ref')" >> $GITHUB_OUTPUT
           echo "head_ref=$(echo $PR_JSON | jq -r '.head.ref')" >> $GITHUB_OUTPUT
           echo "head_repo_name=$(echo $PR_JSON | jq -r '.head.repo.full_name')" >> $GITHUB_OUTPUT
@@ -72,6 +74,12 @@ jobs:
           ref: ${{ steps.pr_data.outputs.head_ref }}
           path: pr_code
           fetch-depth: 0
+
+      - name: Fetch Upstream Base
+        run: |
+          cd pr_code
+          git remote add upstream https://github.com/${{ github.repository }}.git
+          git fetch upstream ${{ steps.pr_data.outputs.base_sha }}
 
       - name: Checkout Trusted Tools
         uses: actions/checkout@v4
@@ -87,7 +95,7 @@ jobs:
         uses: tj-actions/changed-files@v44
         with:
           path: pr_code
-          base_sha: ${{ steps.pr_data.outputs.base_ref }}
+          base_sha: ${{ steps.pr_data.outputs.base_sha }}
           json: true
 
       - name: Get Checkbox State
@@ -117,7 +125,7 @@ jobs:
                 if [ "$SRC" == "$LANG" ]; then continue; fi
                 
                 FULL_LANG=$(echo $LANG | sed 's/ja/Japanese/;s/zh/Chinese/;s/en/English/')
-                GLOBAL_STR=" [x] **$FULL_LANG ($LANG)** for **ALL** missing files"
+                GLOBAL_STR=" [x] **$FULL_LANG ($LANG)** for **ALL** missing/outdated files"
                 INDIVIDUAL_STR=" [x] **$LANG** for \`$FILE\`"
                 
                 if [[ "$BODY" == *"$GLOBAL_STR"* ]] || [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
@@ -156,11 +164,22 @@ jobs:
           cd pr_code
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if [[ -n $(git status --porcelain docs/) ]]; then
             git add docs/
             git commit -m "docs: automated translation via Gemini [skip ci]"
-            git pull --rebase origin ${{ steps.pr_data.outputs.head_ref }}
+
+            # ------------------------------------------------------------------
+            # CRITICAL AUTH FIX: Use PAT to push to Fork
+            # This injects the PAT into the remote URL so we can write to the user's repo
+            # ------------------------------------------------------------------
+            git remote set-url origin https://x-access-token:${{ secrets.DOC_MEMBERSHIP_PAT }}@github.com/${{ steps.pr_data.outputs.head_repo_name }}.git
+
+            # Fetch the specific branch and rebase to ensure a clean history
+            git fetch origin ${{ steps.pr_data.outputs.head_ref }}
+            git rebase origin/${{ steps.pr_data.outputs.head_ref }}
+
+            # Push changes
             git push origin HEAD:refs/heads/${{ steps.pr_data.outputs.head_ref }}
           else
             echo "No translation changes to commit."
