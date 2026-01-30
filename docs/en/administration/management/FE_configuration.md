@@ -16,7 +16,7 @@ import EditionSpecificFEItem from '../../_assets/commonMarkdown/Edition_Specific
 
 ## View FE configuration items
 
-After your FE is started, you can run the ADMIN SHOW FRONTEND CONFIG command on your MySQL client to check the parameter configurations. If you want to query the configuration of a specific parameter, run the following command:
+After your FE is started, you can run the `ADMIN SHOW FRONTEND CONFIG` command on your MySQL client to check the parameter configurations. If you want to query the configuration of a specific parameter, run the following command:
 
 ```SQL
 ADMIN SHOW FRONTEND CONFIG [LIKE "pattern"];
