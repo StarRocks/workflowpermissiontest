@@ -117,9 +117,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BODY: ${{ steps.get_checks.outputs.result }}
           FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files }}
-        run: |
-          pip install -r trusted_tools/docs/translation/requirements.txt
-          
+        run: |          
           for FILE in $(echo "$FILES_JSON" | sed 's/\\"/"/g' | jq -r '.[]'); do
             if [[ "$FILE" =~ ^docs/(en|zh|ja)/ ]]; then
               SRC=$(echo $FILE | cut -d'/' -f2)
