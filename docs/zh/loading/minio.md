@@ -37,6 +37,7 @@ curl -O https://starrocks-examples.s3.amazonaws.com/user_behavior_ten_million_ro
 <InsertPrivNote />
 
 ### 收集连接详细信息
+#### 收集连接详细信息
 
 简而言之，要使用 MinIO Access Key 身份验证，您需要收集以下信息：
 
