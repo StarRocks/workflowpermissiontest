@@ -136,11 +136,11 @@ jobs:
                   OUTPUT_PATH=$(echo "$FILE" | sed "s/^\(docs\/\)${SRC}\//\1${LANG}\//")
                   OUTPUT_DIR=$(dirname "$OUTPUT_PATH")
 
-                  node trusted_tools/bin/cli.js translate \
+                  echo "node trusted_tools/bin/cli.js translate \
                     -s $SOURCE_LANG \
                     -l $TARGET_LANG \
                     -i pr_code/$FILE \
-                    -d pr_code/$OUTPUT_DIR
+                    -d pr_code/$OUTPUT_DIR"
 
                 fi
               done
