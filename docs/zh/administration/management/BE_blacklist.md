@@ -4,9 +4,9 @@ displayed_sidebar: docs
 
 # 管理 BE 和 CN 黑名单
 
-从 v3.3.0 版本开始，StarRocks 支持 BE 黑名单功能，该功能允许您禁止在查询执行中使用某些 BE 节点，从而避免因 BE 节点连接失败而导致的频繁查询失败或其他意外行为。例如，当网络问题阻止连接到一个或多个 BE 时，就可以使用黑名单。
+从 v3.3.0 版本起，StarRocks 支持 BE 黑名单功能，该功能允许您禁止在查询执行中使用某些 BE 节点，从而避免因 BE 节点连接失败而导致的频繁查询失败或其他意外行为。一个阻止连接到一个或多个 BE 的网络问题就是使用黑名单的一个示例。
 
-从 v4.0 版本开始，StarRocks 支持将 Compute Node (CN) 添加到黑名单。
+从 v4.0 版本起，StarRocks 支持将 Compute Node (CN) 添加到黑名单。
 
 默认情况下，StarRocks 可以自动管理 BE 和 CN 黑名单，将失去连接的 BE 或 CN 节点添加到黑名单中，并在连接重新建立时将其从黑名单中移除。但是，如果节点是手动加入黑名单的，StarRocks 不会将其从黑名单中移除。
 
@@ -19,7 +19,7 @@ displayed_sidebar: docs
 
 ## 将 BE/CN 添加到黑名单
 
-您可以使用 [ADD BACKEND/COMPUTE NODE BLACKLIST](../../sql-reference/sql-statements/cluster-management/nodes_processes/ADD_BACKEND_BLACKLIST.md) 手动将 BE/CN 节点添加到黑名单中。在此语句中，您必须指定要加入黑名单的 BE/CN 节点的 ID。您可以通过执行 [SHOW BACKENDS](../../sql-reference/sql-statements/cluster-management/nodes_processes/SHOW_BACKENDS.md) 获取 BE ID，通过执行 [SHOW COMPUTE NODES](../../sql-reference/sql-statements/cluster-management/nodes_processes/SHOW_COMPUTE_NODES.md) 获取 CN ID。
+您可以使用 [ADD BACKEND/COMPUTE NODE BLACKLIST](../../sql-reference/sql-statements/cluster-management/nodes_processes/ADD_BACKEND_BLACKLIST.md) 手动将 BE/CN 节点添加到黑名单。在该语句中，您必须指定要加入黑名单的 BE/CN 节点的 ID。您可以通过执行 [SHOW BACKENDS](../../sql-reference/sql-statements/cluster-management/nodes_processes/SHOW_BACKENDS.md) 获取 BE ID，并通过执行 [SHOW COMPUTE NODES](../../sql-reference/sql-statements/cluster-management/nodes_processes/SHOW_COMPUTE_NODES.md) 获取 CN ID。
 
 示例：
 
@@ -43,17 +43,17 @@ SHOW COMPUTE NODES\G
 ADD COMPUTE NODE BLACKLIST 10005;
 ```
 
-## 将 BE/CN 从黑名单中移除
+## 从黑名单中移除 BE/CN
 
-您可以使用 [DELETE BACKEND/COMPUTE NODE BLACKLIST](../../sql-reference/sql-statements/cluster-management/nodes_processes/DELETE_BACKEND_BLACKLIST.md) 手动将 BE/CN 节点从黑名单中移除。在此语句中，您也必须指定 BE/CN 节点的 ID。
+您可以使用 [DELETE BACKEND/COMPUTE NODE BLACKLIST](../../sql-reference/sql-statements/cluster-management/nodes_processes/DELETE_BACKEND_BLACKLIST.md) 手动将 BE/CN 节点从黑名单中移除。在该语句中，您也必须指定 BE/CN 节点的 ID。
 
 示例：
 
 ```SQL
--- 将 BE 从黑名单中移除。
+-- 从黑名单中移除 BE。
 DELETE BACKEND BLACKLIST 10001;
 
--- 将 CN 从黑名单中移除。
+-- 从黑名单中移除 CN。
 DELETE COMPUTE NODE BLACKLIST 10005;
 ```
 
@@ -83,20 +83,20 @@ SHOW COMPUTE NODE BLACKLIST;
 
 返回以下字段：
 
-- `AddBlackListType`: BE/CN 节点是如何被添加到黑名单的。`MANUAL` 表示用户手动将其加入黑名单。`AUTO` 表示 StarRocks 自动将其加入黑名单。
-- `LostConnectionTime`:
-  - 对于 `MANUAL` 类型，表示 BE/CN 节点被手动添加到黑名单的时间。
+- `AddBlackListType`：BE/CN 节点是如何添加到黑名单的。`MANUAL` 表示用户手动将其加入黑名单。`AUTO` 表示 StarRocks 自动将其加入黑名单。
+- `LostConnectionTime`：
+  - 对于 `MANUAL` 类型，表示 BE/CN 节点手动添加到黑名单的时间。
   - 对于 `AUTO` 类型，表示上次成功建立连接的时间。
-- `LostConnectionNumberInPeriod`: 在 `CheckTimePeriod(s)` 内检测到的断开连接次数，`CheckTimePeriod(s)` 是 StarRocks 检查黑名单中 BE/CN 节点连接状态的间隔。
-- `CheckTimePeriod(s)`: StarRocks 检查黑名单中 BE/CN 节点连接状态的间隔。其值等于您为 FE 配置项 `black_host_history_sec` 指定的值。单位：秒。
+- `LostConnectionNumberInPeriod`：在 `CheckTimePeriod(s)`（StarRocks 检查黑名单中 BE/CN 节点连接状态的间隔）内检测到的断开连接次数。
+- `CheckTimePeriod(s)`：StarRocks 检查黑名单中 BE/CN 节点连接状态的间隔。其值评估为您为 FE 配置项 `black_host_history_sec` 指定的值。单位：秒。
 
 ## 配置 BE/CN 黑名单的自动管理
 
-每当 BE/CN 节点失去与 FE 节点的连接，或者由于 BE/CN 节点上的查询超时而失败时，FE 节点都会将该 BE/CN 节点添加到其 BE 和 CN 黑名单中。FE 节点将通过计算其在特定时间段内的连接失败次数，持续评估黑名单中 BE/CN 节点的连接性。仅当 BE/CN 节点的连接失败次数低于预设阈值时，StarRocks 才会将其从黑名单中移除。
+每当 BE/CN 节点与 FE 节点失去连接，或者由于 BE/CN 节点超时导致查询失败时，FE 节点都会将该 BE/CN 节点添加到其 BE 和 CN 黑名单中。FE 节点将通过计算 BE/CN 节点在特定时间段内的连接失败次数，持续评估黑名单中 BE/CN 节点的连通性。StarRocks 仅在 BE/CN 节点的连接失败次数低于预设阈值时，才会将其从黑名单中移除。
 
-您可以使用以下 [FE 配置](./FE_configuration.md) 配置 BE 和 CN 黑名单的自动管理：
+您可以使用以下 [FE configurations](./FE_configuration.md) 配置 BE 和 CN 黑名单的自动管理：
 
-- `black_host_history_sec`: 黑名单中保留 BE/CN 节点历史连接失败记录的时间长度。
-- `black_host_connect_failures_within_time`: 允许黑名单中的 BE/CN 节点发生连接失败的阈值。
+- `black_host_history_sec`：黑名单中 BE/CN 节点历史连接失败的保留时间。
+- `black_host_connect_failures_within_time`：黑名单中 BE/CN 节点允许的连接失败阈值。
 
-如果 BE/CN 节点是自动添加到黑名单的，StarRocks 将评估其连接性并判断是否可以将其从黑名单中移除。在 `black_host_history_sec` 期间，只有当黑名单中的 BE/CN 节点的连接失败次数少于 `black_host_connect_failures_within_time` 中设置的阈值时，才能将其从黑名单中移除。
+如果 BE/CN 节点自动添加到黑名单中，StarRocks 将评估其连通性并判断是否可以将其从黑名单中移除。在 `black_host_history_sec` 期间，只有当黑名单中的 BE/CN 节点的连接失败次数少于 `black_host_connect_failures_within_time` 中设置的阈值时，才能将其从黑名单中移除。

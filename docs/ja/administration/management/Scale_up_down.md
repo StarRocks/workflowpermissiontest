@@ -2,20 +2,20 @@
 displayed_sidebar: docs
 ---
 
-# スケールインとスケールアウト
+# スケールイン・アウト
 
-このトピックでは、StarRocksのノードをスケールインおよびスケールアウトする方法について説明します。
+このトピックでは、StarRocksのノードをスケールイン・アウトする方法について説明します。
 
-## FEのスケールインとスケールアウト
+## FEのスケールイン・アウト
 
 StarRocksには、FollowerとObserverの2種類のFEノードがあります。Followerは選挙の投票と書き込みに関与します。Observerはログの同期と読み取りパフォーマンスの拡張にのみ使用されます。
 
-> * Follower FEの数（リーダーを含む）は奇数でなければならず、高可用性（HA）モードを形成するために3つをデプロイすることが推奨されます。
-> * FEが高可用性デプロイメント（リーダー1、Follower 2）である場合、読み取りパフォーマンスを向上させるためにObserver FEを追加することが推奨されます。
+> * フォロワーFE（リーダーを含む）の数は奇数である必要があり、高可用性（HA）モードを形成するために3つデプロイすることが推奨されます。
+> * FEが高可用性デプロイメント（1リーダー、2フォロワー）の場合、読み取りパフォーマンスを向上させるためにObserver FEを追加することが推奨されます。
 
 ### FEのスケールアウト
 
-FEノードをデプロイし、サービスを開始した後、以下のコマンドを実行してFEをスケールアウトします。
+FEノードをデプロイし、サービスを開始した後、FEをスケールアウトするために以下のコマンドを実行します。
 
 ~~~sql
 alter system add follower "fe_host:edit_log_port";
@@ -24,34 +24,34 @@ alter system add observer "fe_host:edit_log_port";
 
 ### FEのスケールイン
 
-FEのスケールインはスケールアウトと似ています。以下のコマンドを実行してFEをスケールインします。
+FEのスケールインはスケールアウトと似ています。FEをスケールインするために以下のコマンドを実行します。
 
 ~~~sql
 alter system drop follower "fe_host:edit_log_port";
 alter system drop observer "fe_host:edit_log_port";
 ~~~
 
-拡張と縮小の後、`show proc '/frontends';` を実行してノード情報を確認できます。
+拡張および縮小後、`show proc '/frontends';`を実行してノード情報を確認できます。
 
-## BEのスケールインとスケールアウト
+## BEのスケールイン・アウト
 
-StarRocksは、BEがスケールインまたはスケールアウトされた後、全体のパフォーマンスに影響を与えることなく、自動的にロードバランシングを実行します。
+StarRocksは、BEのスケールイン・アウト後も、全体のパフォーマンスに影響を与えることなく、自動的にロードバランシングを実行します。
 
-新しいBEノードを追加すると、システムのTablet Schedulerが新しいノードとその低い負荷を検出し、高負荷のBEノードから新しい低負荷のBEノードへタブレットの移動を開始し、クラスター全体でのデータと負荷の均等な分散を保証します。
+新しいBEノードを追加すると、システムのTablet Schedulerが新しいノードとその低い負荷を検出し、高負荷のBEノードから新しい低負荷のBEノードへタブレットの移動を開始し、クラスター全体でデータと負荷が均等に分散されるようにします。
 
 バランシングプロセスは、各BEに対して計算されるloadScoreに基づいており、ディスク使用率とレプリカ数の両方を考慮します。システムは、loadScoreが高いノードからloadScoreが低いノードへタブレットを移動させることを目指します。
 
-FE構成パラメータ`tablet_sched_disable_balance`を確認して、自動バランシングが無効になっていないことを確認できます（このパラメータはデフォルトでfalseであり、タブレットバランシングがデフォルトで有効であることを意味します）。詳細については、[レプリカ管理ドキュメント](./resource_management/Replica.md)を参照してください。
+FE設定パラメータ`tablet_sched_disable_balance`を確認して、自動バランシングが無効になっていないことを確認できます（このパラメータはデフォルトでfalseであり、タブレットバランシングがデフォルトで有効であることを意味します）。詳細については、[レプリカ管理ドキュメント](./resource_management/Replica.md)を参照してください。
 
 ### BEのスケールアウト
 
-以下のコマンドを実行してBEをスケールアウトします。
+BEをスケールアウトするために以下のコマンドを実行します。
 
 ~~~sql
 alter system add backend 'be_host:be_heartbeat_service_port';
 ~~~
 
-以下のコマンドを実行してBEのステータスを確認します。
+BEのステータスを確認するために以下のコマンドを実行します。
 
 ~~~sql
 show proc '/backends';
@@ -59,30 +59,30 @@ show proc '/backends';
 
 ### BEのスケールイン
 
-BEノードをスケールインする方法には、`DROP` と `DECOMMISSION` の2つがあります。
+BEノードをスケールインする方法には、`DROP`と`DECOMMISSION`の2つがあります。
 
-`DROP`はBEノードを即座に削除し、失われた複製はFEのスケジューリングによって補われます。`DECOMMISSION`はまず複製が補われることを確認してからBEノードを削除します。`DECOMMISSION`の方が少し扱いやすく、BEのスケールインには推奨されます。
+`DROP`はBEノードを直ちに削除し、失われた複製はFEスケジューリングによって補充されます。`DECOMMISSION`は、まず複製が補充されていることを確認してからBEノードを削除します。`DECOMMISSION`の方がより安全であり、BEのスケールインには推奨されます。
 
-両方のメソッドのコマンドは似ています:
+両方の方法のコマンドは似ています：
 
 * `alter system decommission backend "be_host:be_heartbeat_service_port";`
 * `alter system drop backend "be_host:be_heartbeat_service_port";`
 
-バックエンドのドロップは危険な操作であるため、実行する前に二重に確認する必要があります。
+バックエンドのドロップは危険な操作であるため、実行する前に二度確認する必要があります。
 
 * `alter system drop backend "be_host:be_heartbeat_service_port";`
 
-## CNのスケールインとスケールアウト
+## CNのスケールイン・アウト
 
 ### CNのスケールアウト
 
-以下のコマンドを実行してCNをスケールアウトします。
+CNをスケールアウトするために以下のコマンドを実行します。
 
 ~~~sql
 ALTER SYSTEM ADD COMPUTE NODE "cn_host:cn_heartbeat_service_port";
 ~~~
 
-以下のコマンドを実行してCNのステータスを確認します。
+CNのステータスを確認するために以下のコマンドを実行します。
 
 ~~~sql
 SHOW PROC '/compute_nodes';
@@ -90,10 +90,10 @@ SHOW PROC '/compute_nodes';
 
 ### CNのスケールイン
 
-CNのスケールインはスケールアウトと似ています。以下のコマンドを実行してCNをスケールインします。
+CNのスケールインはスケールアウトと似ています。CNをスケールインするために以下のコマンドを実行します。
 
 ~~~sql
 ALTER SYSTEM DROP COMPUTE NODE "cn_host:cn_heartbeat_service_port";
 ~~~
 
-`SHOW PROC '/compute_nodes';` を実行してノード情報を確認できます。
+`SHOW PROC '/compute_nodes';`を実行してノード情報を確認できます。
