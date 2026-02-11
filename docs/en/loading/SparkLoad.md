@@ -2,38 +2,38 @@
 displayed_sidebar: docs
 ---
 
-# Load data in bulk using Spark Load
+# Bulk Data Import with Spark Load
 
-This load uses external Apache Spark™ resources to pre-process imported data, which improves import performance and saves compute resources. It is mainly used for **initial migration** and **large data import** into StarRocks (data volume up to TB level).
+Spark Load uses external Apache Spark™ resources to preprocess imported data, thereby improving import performance and saving computing resources. It is primarily used for **initial migration** and **importing large amounts of data** into StarRocks (up to TB level data volume).
 
-Spark load is an **asynchronous** import method that requires users to create Spark-type import jobs via the MySQL protocol and view the import results using `SHOW LOAD`.
+Spark Load is an **asynchronous** import method. Users need to create a Spark type import job via the MySQL protocol and use `SHOW LOAD` to view the import results.
 
-> **NOTICE**
+> **Note**
 >
-> - Only users with the INSERT privilege on a StarRocks table can load data into this table. You can follow the instructions provided in [GRANT](../sql-reference/sql-statements/account-management/GRANT.md) to grant the required privilege.
-> - Spark Load can not be used to load data into a Primary Key table.
+> - Only users with INSERT permissions on a StarRocks table can import data into that table. You can grant the necessary permissions as described in [GRANT](../sql-reference/sql-statements/account-management/GRANT.md).
+> - Spark Load cannot be used to import data into primary key tables.
 
-## Terminology explanation
+## Terminology
 
-- **Spark ETL**: Mainly responsible for ETL of data in the import process, including global dictionary construction (BITMAP type), partitioning, sorting, aggregation, etc.
-- **Broker**: Broker is an independent stateless process. It encapsulates the file system interface and provides StarRocks with the ability to read files from remote storage systems.
-- **Global Dictionary**: Saves the data structure that maps data from the original value to the encoded value. The original value can be any data type, while the encoded value is an integer. The global dictionary is mainly used in scenarios where exact count distinct is precomputed.
+- **Spark ETL**: Primarily responsible for data ETL during the import process, including global dictionary construction (BITMAP type), partitioning, sorting, aggregation, etc.
+- **Broker**: A Broker is an independent stateless process. It encapsulates the file system interface and provides StarRocks with the ability to read files from remote storage systems.
+- **Global Dictionary**: A data structure that stores the mapping from original values to encoded values. Original values can be of any data type, while encoded values are integers. The global dictionary is mainly used for pre-calculation in scenarios requiring accurate deduplication.
 
-## Fundamentals
+## Principle
 
-The user submits a Spark type import job through the MySQL client;the FE records the metadata and returns the submission result.
+Users submit Spark type import jobs via the MySQL client; FE records metadata and returns the submission result.
 
-The execution of the spark load task is divided into the following main phases.
+The execution of a Spark Load task is divided into the following main stages.
 
-1. The user submits the spark load job to the FE.
-2. The FE schedules the submission of the ETL task to the Apache Spark™ cluster for execution.
-3. The Apache Spark™ cluster executes the ETL task that includes global dictionary construction (BITMAP type), partitioning, sorting, aggregation, etc.
-4. After the ETL task is completed, the FE gets the data path of each preprocessed slice and schedules the relevant BE to execute the Push task.
-5. The BE reads data through Broker process from HDFS and converts it into StarRocks storage format.
-    > If you choose not to use Broker process, the BE reads data from HDFS directly.
-6. The FE schedules the effective version and completes the import job.
+1. The user submits a Spark Load job to FE.
+2. FE schedules the ETL task to be executed on the Apache Spark™ cluster.
+3. The Apache Spark™ cluster executes the ETL task, including global dictionary construction (BITMAP type), partitioning, sorting, aggregation, etc.
+4. After the ETL task is completed, FE obtains the data path of each preprocessed slice and schedules the relevant BEs to execute Push tasks.
+5. BEs read data from HDFS through the Broker process and convert it into StarRocks storage format.
+    > If you choose not to use the Broker process, BEs will read data directly from HDFS.
+6. FE schedules the version to take effect and completes the import job.
 
-The following diagram illustrates the main flow of spark load.
+The following diagram illustrates the main process of Spark Load.
 
 ![Spark load](../_assets/4.3.2-1.png)
 
@@ -43,40 +43,40 @@ The following diagram illustrates the main flow of spark load.
 
 ### Applicable Scenarios
 
-Currently, the BITMAP column in StarRocks is implemented using the Roaringbitmap, which only has integer to be the input data type. So if you want to implement precomputation for the BITMAP column in the import process, then you need to convert the input data type to integer.
+Currently, BITMAP columns in StarRocks are implemented using Roaringbitmap, which only accepts integers as input data types. Therefore, if you want to implement pre-calculation for BITMAP columns during the import process, you need to convert the input data type to an integer.
 
-In the existing import process of StarRocks, the data structure of the global dictionary is implemented based on the Hive table, which saves the mapping from the original value to the encoded value.
+In the existing import process of StarRocks, the data structure for the global dictionary is implemented based on Hive tables, which stores the mapping from original values to encoded values.
 
-### Build Process
+### Construction Process
 
-1. Read the data from the upstream data source and generate a temporary Hive table, named `hive-table`.
-2. Extract the values of the de-emphasized fields of `hive-table` to generate a new Hive table named `distinct-value-table`.
-3. Create a new global dictionary table named `dict-table` with one column for the original values and one column for the encoded values.
-4. Left join between `distinct-value-table` and `dict-table`, and then use the window function to encode this set. Finally both the original value and the encoded value of the de-duplicated column are written back to `dict-table`.
-5. Join between `dict-table` and `hive-table` to finish the job of replacing the original value in `hive-table` with the integer encoded value.
-6. `hive-table` will be read by the next time data pre-processing, and then imported into StarRocks after calculation.
+1. Read data from the upstream data source and generate a temporary Hive table, named `hive-table`.
+2. Extract the values of non-emphasized fields from `hive-table` to generate a new Hive table, named `distinct-value-table`.
+3. Create a new global dictionary table, named `dict-table`, with one column for original values and one column for encoded values.
+4. Perform a left join between `distinct-value-table` and `dict-table`, then use window functions to encode the set. Finally, write both the original and encoded values of the deduplicated columns back to `dict-table`.
+5. Perform a join between `dict-table` and `hive-table` to replace the original values in `hive-table` with integer encoded values.
+6. `hive-table` will be read by the next data preprocessing step and then imported into StarRocks after computation.
 
-## Data Pre-processing
+## Data Preprocessing
 
-The basic process of data pre-processing is as follows:
+The basic process of data preprocessing is as follows:
 
-1. Read data from the upstream data source (HDFS file or Hive table).
-2. Complete field mapping and calculation for the read data, then generate `bucket-id` based on the partition information.
-3. Generate RollupTree based on the Rollup metadata of StarRocks table.
-4. Iterate through the RollupTree and perform hierarchical aggregation operations. The Rollup of the next hierarchy can be calculated from the Rollup of the previous hierarchy.
-5. Each time the aggregation calculation is completed, the data is bucketed according to `bucket-id` and then written to HDFS.
-6. The subsequent Broker process will pull the files from HDFS and import them into the StarRocks BE node.
+1. Read data from the upstream data source (HDFS files or Hive tables).
+2. Complete field mapping and calculations for the read data, then generate `bucket-id` based on partitioning information.
+3. Generate `RollupTree` based on the Rollup metadata of the StarRocks table.
+4. Iterate `RollupTree` and perform hierarchical aggregation operations. Rollups of the next level can be calculated from Rollups of the previous level.
+5. After each aggregation calculation is completed, the data will be bucketed based on `bucket-id` and then written to HDFS.
+6. Subsequent Broker processes will pull files from HDFS and import them into StarRocks BE nodes.
 
 ## Basic Operations
 
-### Configuring ETL Clusters
+### Configure ETL Cluster
 
-Apache Spark™ is used as an external computational resource in StarRocks for ETL work. There may be other external resources added to StarRocks, such as Spark/GPU for query, HDFS/S3 for external storage, MapReduce for ETL, etc. Therefore, we introduce `Resource Management` to manage these external resources used by StarRocks.
+Apache Spark™ is used as an external computing resource in StarRocks for ETL work. There may be other external resources added to StarRocks, such as Spark/GPU for querying, HDFS/S3 for external storage, MapReduce for ETL, etc. Therefore, we introduced `Resource Management` to manage these external resources used by StarRocks.
 
-Before submitting a Apache Spark™ import job, configure the Apache Spark™ cluster for performing ETL tasks. The syntax for operation is as follows:
+Before submitting an Apache Spark™ import job, please configure the Apache Spark™ cluster to execute ETL tasks. The operation syntax is as follows:
 
 ~~~sql
--- create Apache Spark™ resource
+-- Create an Apache Spark™ resource
 CREATE EXTERNAL RESOURCE resource_name
 PROPERTIES
 (
@@ -87,24 +87,24 @@ PROPERTIES
  broker.property_key = property_value
 );
 
--- drop Apache Spark™ resource
+-- Delete an Apache Spark™ resource
 DROP RESOURCE resource_name;
 
--- show resources
+-- Show resources
 SHOW RESOURCES
 SHOW PROC "/resources";
 
--- privileges
+-- Permissions
 GRANT USAGE_PRIV ON RESOURCE resource_name TO user_identityGRANT USAGE_PRIV ON RESOURCE resource_name TO ROLE role_name;
 REVOKE USAGE_PRIV ON RESOURCE resource_name FROM user_identityREVOKE USAGE_PRIV ON RESOURCE resource_name FROM ROLE role_name;
 ~~~
 
-- Create resource
+- Create Resource
 
-**For example**:
+**Example**:
 
 ~~~sql
--- yarn cluster mode
+-- Yarn cluster mode
 CREATE EXTERNAL RESOURCE "spark0"
 PROPERTIES
 (
@@ -123,7 +123,7 @@ PROPERTIES
     "broker.password" = "password0"
 );
 
--- yarn HA cluster mode
+-- Yarn HA cluster mode
 CREATE EXTERNAL RESOURCE "spark1"
 PROPERTIES
 (
@@ -142,81 +142,81 @@ PROPERTIES
 
 `resource-name` is the name of the Apache Spark™ resource configured in StarRocks.
 
-`PROPERTIES` includes parameters relating to the Apache Spark™ resource, as follows:
+`PROPERTIES` includes parameters related to the Apache Spark™ resource, as follows:
 > **Note**
 >
-> For detailed description of Apache Spark™ resource PROPERTIES, please see [CREATE RESOURCE](../sql-reference/sql-statements/Resource/CREATE_RESOURCE.md)
+> For a detailed explanation of Apache Spark™ resource PROPERTIES, please refer to [CREATE RESOURCE](../sql-reference/sql-statements/Resource/CREATE_RESOURCE.md).
 
-- Spark related parameters:
-  - `type`: Resource type, required, currently only supports `spark`.
-  - `spark.master`: Required, currently only supports `yarn`.
-    - `spark.submit.deployMode`: The deployment mode of the Apache Spark™ program, required, currently supports both `cluster` and `client`.
+- Spark-related parameters:
+  - `type`: Resource type, required, currently only `spark` is supported.
+  - `spark.master`: Required, currently only `yarn` is supported.
+    - `spark.submit.deployMode`: Deployment mode of the Apache Spark™ program, required, currently `cluster` and `client` are supported.
     - `spark.hadoop.fs.defaultFS`: Required if master is yarn.
-    - Parameters related to yarn resource manager, required.
-      - one ResourceManager on a single node
-        `spark.hadoop.yarn.resourcemanager.address`: Address of the single point resource manager.
+    - Parameters related to yarn ResourceManager, required.
+      - A single ResourceManager on a single node
+        `spark.hadoop.yarn.resourcemanager.address`: Address of the single-point ResourceManager.
       - ResourceManager HA
-        >  You can choose to specify ResourceManager's hostname or address.
-        - `spark.hadoop.yarn.resourcemanager.ha.enabled`: Enable the resource manager HA, set to `true`.
-        - `spark.hadoop.yarn.resourcemanager.ha.rm-ids`: list of resource manager logical ids.
-        - `spark.hadoop.yarn.resourcemanager.hostname.rm-id`: For each rm-id, specify the hostname corresponding to the resource manager.
-        - `spark.hadoop.yarn.resourcemanager.address.rm-id`: For each rm-id, specify `host:port` for the client to submit jobs to.
+        > You can choose to specify the hostname or address of the ResourceManager.
+        - `spark.hadoop.yarn.resourcemanager.ha.enabled`: Enable ResourceManager HA, set to `true`.
+        - `spark.hadoop.yarn.resourcemanager.ha.rm-ids`: List of ResourceManager logical IDs.
+        - `spark.hadoop.yarn.resourcemanager.hostname.rm-id`: For each rm-id, specify the hostname corresponding to the ResourceManager.
+        - `spark.hadoop.yarn.resourcemanager.address.rm-id`: For each rm-id, specify the `host:port` where clients submit jobs.
 
 - `*working_dir`: The directory used by ETL. Required if Apache Spark™ is used as an ETL resource. For example: `hdfs://host:port/tmp/starrocks`.
 
-- Broker related parameters:
-  - `broker`: Broker name. Required if Apache Spark™ is used as an ETL resource. You need to use the `ALTER SYSTEM ADD BROKER` command to complete the configuration in advance.
-  - `broker.property_key`: Information (e.g.authentication information) to be specified when Broker process reads the intermediate file generated by the ETL.
+- Broker-related parameters:
+  - `broker`: Broker name. Required if Apache Spark™ is used as an ETL resource. You need to complete the configuration in advance using the `ALTER SYSTEM ADD BROKER` command.
+  - `broker.property_key`: Information to be specified when the Broker process reads intermediate files generated by ETL (e.g., authentication information).
 
-**Precaution**:
+**Note**:
 
-The above is a description of parameters for loading through Broker process. If you intend to load data without Broker process, the following should be noted.
+The above describes the parameters for loading via the Broker process. If you plan to load data without a Broker process, you should note the following:
 
 - You do not need to specify `broker`.
-- If you need to configure user authentication, and HA for NameNode nodes, you need to configure the parameters in the hdfs-site.xml file in the HDFS cluster, see [broker_properties](../sql-reference/sql-statements/loading_unloading/BROKER_LOAD.md#hdfs) for descriptions of parameters. and you need to move the **hdfs-site.xml** file under **$FE_HOME/conf** for each FE and **$BE_HOME/conf** for each BE.
+- If you need to configure user authentication and NameNode HA, you need to configure parameters in the hdfs-site.xml file in the HDFS cluster. For a description of the parameters, refer to [broker_properties](../sql-reference/sql-statements/loading_unloading/BROKER_LOAD.md#hdfs). And you need to move the **hdfs-site.xml** file to **$FE_HOME/conf** under each FE and **$BE_HOME/conf** under each BE.
 
 > Note
 >
-> If the HDFS file can only be accessed by a specific user, you still need to specify the HDFS username in `broker.name` and the user password in `broker.password`.
+> If HDFS files can only be accessed by specific users, you still need to specify the HDFS username in `broker.name` and the user password in `broker.password`.
 
-- View resources
+- View Resources
 
-Regular accounts can only view resources to which they have `USAGE-PRIV` access. The root and admin accounts can view all resources.
+Regular accounts can only view resources they have `USAGE-PRIV` access to. Root and admin accounts can view all resources.
 
 - Resource Permissions
 
-Resource permissions are managed through `GRANT REVOKE`, which currently only supports `USAGE-PRIV` permissions. You can give `USAGE-PRIV` permissions to a user or a role.
+Resource permissions are managed by `GRANT REVOKE`, and currently only `USAGE-PRIV` permission is supported. You can grant `USAGE-PRIV` permission to users or roles.
 
 ~~~sql
--- Grant access to spark0 resources to user0
+-- Grant user0 permission to access spark0 resource
 GRANT USAGE_PRIV ON RESOURCE "spark0" TO "user0"@"%";
 
--- Grant access to spark0 resources to role0
+-- Grant role0 permission to access spark0 resource
 GRANT USAGE_PRIV ON RESOURCE "spark0" TO ROLE "role0";
 
--- Grant access to all resources to user0
+-- Grant user0 permission to access all resources
 GRANT USAGE_PRIV ON RESOURCE* TO "user0"@"%";
 
--- Grant access to all resources to role0
+-- Grant role0 permission to access all resources
 GRANT USAGE_PRIV ON RESOURCE* TO ROLE "role0";
 
--- Revoke the use privileges of spark0 resources from user user0
+-- Revoke user0's usage permission on spark0 resource
 REVOKE USAGE_PRIV ON RESOURCE "spark0" FROM "user0"@"%";
 ~~~
 
-### Configuring Spark Client
+### Configure Spark Client
 
-Configure the Spark client for FE so that the latter can submit Spark tasks by executing the `spark-submit` command. It is recommended to use the official version of Spark2 2.4.5 or above     [spark download address](https://archive.apache.org/dist/spark/). After downloading, please use the following steps to complete the configuration.
+Configure the Spark client for FE so that the latter can submit Spark tasks by executing the `spark-submit` command. It is recommended to use the official version of Spark2 2.4.5 or higher [spark download address](https://archive.apache.org/dist/spark/). After downloading, please follow the steps below to complete the configuration.
 
 - Configure `SPARK-HOME`
-  
-Place the Spark client in a directory on the same machine as the FE, and configure `spark_home_default_dir` in the FE configuration file to this directory, which by default is the `lib/spark2x` path in the FE root directory, and cannot be empty.
 
-- **Configure SPARK dependency package**
-  
-To configure the dependency package, zip and archive all jar files in the jars folder under the Spark client, and configure the `spark_resource_path` item in the FE configuration to this zip file. If this configuration is empty, the FE will try to find the `lib/spark2x/jars/spark-2x.zip` file in the FE root directory. If the FE fails to find it, it will report an error.
+Place the Spark client in a directory on the same machine as FE, and configure `spark_home_default_dir` in the FE configuration file to this directory. By default, this directory is `lib/spark2x` path in the FE root directory, and it cannot be empty.
 
-When the spark load job is submitted, the archived dependency files will be uploaded to the remote repository. The default repository path is under the `working_dir/{cluster_id}` directory named with `--spark-repository--{resource-name}`, which means that a resource in the cluster corresponds to a remote repository. The directory structure is referenced as follows:
+- **Configure SPARK Dependency Packages**
+
+To configure dependency packages, compress and archive all jar files in the `jars` folder under the Spark client and configure the `spark_resource_path` item in the FE configuration to this zip file. If this configuration is empty, FE will try to find the `lib/spark2x/jars/spark-2x.zip` file in the FE root directory. If FE cannot find it, it will report an error.
+
+When submitting a Spark Load job, the archived dependency files will be uploaded to a remote repository. The default repository path is located in the `working_dir/{cluster_id}` directory and named `--spark-repository--{resource-name}`, which means one resource in the cluster corresponds to one remote repository. The directory structure reference is as follows:
 
 ~~~bash
 ---spark-repository--spark0/
@@ -239,19 +239,19 @@ When the spark load job is submitted, the archived dependency files will be uplo
 
 ~~~
 
-In addition to the spark dependencies (named `spark-2x.zip` by default), the FE also uploads the DPP dependencies to the remote repository. If all the dependencies submitted by the spark load already exist in the remote repository, then there is no need to upload the dependencies again, saving the time of repeatedly uploading a large number of files each time.
+In addition to Spark dependencies (named `spark-2x.zip` by default), FE will also upload DPP dependencies to the remote repository. If all dependencies submitted by Spark Load already exist in the remote repository, there is no need to upload them again, which saves time from repeatedly uploading a large number of files each time.
 
-### Configuring YARN Client
+### Configure YARN Client
 
-Configure the yarn client for FE so that the FE can execute yarn commands to get the status of the running application or kill it.It is recommended to use the official version of Hadoop2 2.5.2 or above ([hadoop download address](https://archive.apache.org/dist/hadoop/common/)). After downloading, please use the following steps to complete the configuration:
+Configure the Yarn client for FE so that FE can execute Yarn commands to get the status of running applications or terminate them. It is recommended to use the official version of Hadoop2 2.5.2 or higher ([hadoop download address](https://archive.apache.org/dist/hadoop/common/)). After downloading, please follow the steps below to complete the configuration:
 
-- **Configure the YARN executable path**
-  
-Place the downloaded yarn client in a directory on the same machine as the FE, and configure the `yarn_client_path` item in the FE configuration file to the binary executable file of yarn, which by default is the `lib/yarn-client/hadoop/bin/yarn` path in the FE root directory.
+- **Configure YARN Executable Path**
 
-- **Configure the path to the configuration file needed to generate YARN (optional)**
-  
-When the FE goes through the yarn client to get the status of the application, or to kill the application, by default StarRocks generates the configuration file required to execute the yarn command in the `lib/yarn-config` path of the FE root directory This path can be modified by configuring the `yarn_config_dir` entry in the FE configuration file, which currently includes `core-site.xml` and `yarn-site.xml`.
+Place the downloaded Yarn client in a directory on the same machine as FE, and configure the `yarn_client_path` item in the FE configuration file to the Yarn binary executable file. By default, this file is `lib/yarn-client/hadoop/bin/yarn` path in the FE root directory.
+
+- **Configure Path for YARN Configuration Files (Optional)**
+
+When FE obtains the status of an application or terminates it via the Yarn client, by default, StarRocks generates the configuration files required to execute Yarn commands in the `lib/yarn-config` path of the FE root directory. This path can be modified by configuring the `yarn_config_dir` entry in the FE configuration file, which currently includes `core-site.xml` and `yarn-site.xml`.
 
 ### Create Import Job
 
@@ -289,7 +289,7 @@ WITH RESOURCE resource_name
  (key2=value2, ...)
 ~~~
 
-**Example 1**: The case where the upstream data source is HDFS
+**Example 1**: Upstream data source is HDFS
 
 ~~~sql
 LOAD LABEL db1.label1
@@ -320,9 +320,9 @@ PROPERTIES
 );
 ~~~
 
-**Example 2**: The case where the upstream data source is Hive.
+**Example 2**: Upstream data source is Hive.
 
-- Step 1: Create a new hive resource
+- Step 1: Create a new Hive resource
 
 ~~~sql
 CREATE EXTERNAL RESOURCE hive0
@@ -333,7 +333,7 @@ PROPERTIES
 );
  ~~~
 
-- Step 2: Create a new hive external table
+- Step 2: Create a new Hive external table
 
 ~~~sql
 CREATE EXTERNAL TABLE hive_t1
@@ -352,7 +352,7 @@ PROPERTIES
 );
  ~~~
 
-- Step 3: Submit the load command, requiring that the columns in the imported StarRocks table exist in the hive external table.
+- Step 3: Submit the load command, requiring that the columns in the StarRocks table to be imported exist in the Hive external table.
 
 ~~~sql
 LOAD LABEL db1.label1
@@ -375,24 +375,24 @@ PROPERTIES
 );
  ~~~
 
-Introduction to the parameters in the Spark load:
+Introduction to parameters in Spark Load:
 
 - **Label**
-  
-Label of the import job. Each import job has a Label that is unique within the database, following the same rules as broker load.
 
-- **Data description class parameters**
-  
-Currently, supported data sources are CSV and Hive table. Other rules are the same as broker load.
+The label of the import job. Each import job has a label, which is unique in the database and follows the same rules as Broker Load.
+
+- **Data Description Parameters**
+
+Currently, supported data sources are CSV and Hive tables. Other rules are the same as Broker Load.
 
 - **Import Job Parameters**
-  
-Import job parameters refer to the parameters belonging to the `opt_properties` section of the import statement. These parameters are applicable to the entire import job. The rules are the same as broker load.
+
+Import job parameters refer to the parameters belonging to the `opt_properties` section of the import statement. These parameters apply to the entire import job. The rules are the same as Broker Load.
 
 - **Spark Resource Parameters**
-  
-Spark resources need to be configured into StarRocks in advance and users need to be given USAGE-PRIV permissions before they can apply the resources to Spark load.
-Spark resource parameters can be set when the user has a temporary need, such as adding resources for a job and modifying Spark configs. The setting only takes effect on this job and does not affect the existing configurations in the StarRocks cluster.
+
+Spark resources need to be configured in StarRocks in advance, and users need to be granted USAGE-PRIV permission before the resource can be applied to Spark Load.
+When users have temporary needs, they can set Spark resource parameters, such as adding resources to the job and modifying Spark configuration. This setting only takes effect for this job and does not affect existing configurations in the StarRocks cluster.
 
 ~~~sql
 WITH RESOURCE 'spark0'
@@ -402,23 +402,23 @@ WITH RESOURCE 'spark0'
 )
 ~~~
 
-- **Import when the data source is Hive**
-  
-Currently, to use a Hive table in the import process, you need to create an external table of the `Hive` type and then specify its name when submitting the import command.
+- **Import when data source is Hive**
 
-- **Import process to build a global dictionary**
-  
-In the load command, you can specify the required fields for building the global dictionary in the following format: `StarRocks field name=bitmap_dict(hive table field name)` Note that currently **the global dictionary is only supported when the upstream data source is a Hive table**.
+Currently, to use Hive tables during the import process, you need to create an external table of type `Hive` and then specify its name when submitting the import command.
 
-- **Load binary type data**
+- **Import Process to Build Global Dictionary**
 
-Since v2.5.17, Spark Load supports the bitmap_from_binary function, which can convert binary data into bitmap data. If the column type of the Hive table or HDFS file is binary and the corresponding column in the StarRocks table is a bitmap-type aggregate column, you can specify the fields in the load command in the following format, `StarRocks field name=bitmap_from_binary(Hive table field name)`. This eliminates the need for building a global dictionary.
+In the load command, you can specify the fields required to build a global dictionary in the following format: `StarRocks field name=bitmap_dict(Hive table field name)`. Please note that currently, **the global dictionary is only supported when the upstream data source is a Hive table**.
 
-## Viewing Import Jobs
+- **Load Binary Data**
 
-The Spark load import is asynchronous, as is the broker load. The user must record the label of the import job and use it in the `SHOW LOAD` command to view the import results. The command to view the import is common to all import methods. The example is as follows.
+Starting from v2.5.17, Spark Load supports the `bitmap_from_binary` function, which can convert binary data into bitmap data. If the column type of the Hive table or HDFS file is binary, and the corresponding column in the StarRocks table is an aggregate column of type bitmap, you can specify the field in the load command in the following format, `StarRocks field name=bitmap_from_binary(Hive table field name)`. This eliminates the need to build a global dictionary.
 
-Refer to Broker Load for a detailed explanation of returned parameters.The differences are as follows.
+## View Import Job
+
+Spark Load import is asynchronous, as is Broker Load. Users must record the label of the import job and use it in the `SHOW LOAD` command to view the import results. The command for viewing imports is common to all import methods. An example is as follows.
+
+For a detailed explanation of return parameters, please refer to Broker Load. The differences are as follows.
 
 ~~~sql
 mysql> show load order by createtime desc limit 1\G
@@ -441,38 +441,38 @@ LoadFinishTime: 2019-07-27 11:50:16
 ~~~
 
 - **State**
-  
-The current stage of the imported job.
-PENDING: The job is committed.
-ETL: Spark ETL is committed.
-LOADING: The FE schedule an BE to execute push operation.
-FINISHED: The push is completed and the version is effective.
 
-There are two final stages of the import job – `CANCELLED` and `FINISHED`, both indicating the load job is completed. `CANCELLED` indicates import failure and `FINISHED` indicates import success.
+Current stage of the import job.
+PENDING: Job submitted.
+ETL: Spark ETL submitted.
+LOADING: FE schedules BE to perform push operation.
+FINISHED: Push completed, version takes effect.
+
+An import job has two final stages – `CANCELLED` and `FINISHED`, both indicating that the load job has completed. `CANCELLED` means the import failed, and `FINISHED` means the import succeeded.
 
 - **Progress**
-  
-Description of the import job progress. There are two types of progress –ETL and LOAD, which correspond to the two phases of the import process, ETL and LOADING.
 
-- The range of progress for LOAD is 0~100%.
-  
-`LOAD progress = the number of currently completed tablets of all replications imports / the total number of tablets of this import job * 100%`.
+Description of the import job progress. There are two types of progress – ETL and LOAD, which correspond to the two stages of the import process, ETL and LOADING.
 
-- If all tables have been imported, the LOAD progress is 99%, and changes to 100% when the import enters the final validation phase.
+- The progress of LOAD ranges from 0~100%.
 
-- The import progress is not linear. If there is no change in progress for a period of time, it does not mean that the import is not executing.
+`LOAD progress = number of tablets of all currently completed replica imports / total number of tablets for this import job * 100%`.
+
+- If all tables have been imported, the LOAD progress will be 99%, and it will change to 100% when the import enters the final verification stage.
+
+- Import progress is not linear. If the progress does not change for a period of time, it does not mean that the import is not executing.
 
 - **Type**
 
- The type of the import job. SPARK for spark load.
+Type of import job. SPARK indicates Spark Load.
 
 - **CreateTime/EtlStartTime/EtlFinishTime/LoadStartTime/LoadFinishTime**
 
-These values represent the time when the import was created, when the ETL phase started, when the ETL phase completed,      when the LOADING phase started, and when the entire import job was completed.
+These values represent the time the import was created, the time the ETL stage started, the time the ETL stage completed, the time the LOADING stage started, and the time the entire import job completed.
 
 - **JobDetails**
 
-Displays the detailed running status of the job, including the number of imported files, total size (in bytes), number of subtasks, number of raw rows being processed, etc. For example:
+Displays the detailed running status of the job, including the number of files imported, total size (in bytes), number of subtasks, raw rows being processed, etc. For example:
 
 ~~~json
  {"ScannedRows":139264,"TaskNumber":1,"FileNumber":1,"FileSize":940754064}
@@ -480,58 +480,58 @@ Displays the detailed running status of the job, including the number of importe
 
 - **URL**
 
-You can copy the input to your browser to access  the web interface of the corresponding application.
+You can copy the input to a browser to access the web interface of the corresponding application.
 
-### View Apache Spark™ Launcher commit logs
+### View Apache Spark™ Launcher Submission Logs
 
-Sometimes users need to view the detailed logs generated during a Apache Spark™ job commit. By  default, the logs are saved in the path `log/spark_launcher_log` in the FE root directory named as `spark-launcher-{load-job-id}-{label}.log`. The logs are saved in this directory for a period of time and will be erased when the import information in FE metadata is cleaned up. The default retention time is 3 days.
+Sometimes, users need to view the detailed logs generated during Apache Spark™ job submission. By default, the logs are saved in the `log/spark_launcher_log` path in the FE root directory, named `spark-launcher-{load-job-id}-{label}.log`. The logs are kept in this directory for a period of time and are deleted when the import information in the FE metadata is cleared. The default retention period is 3 days.
 
 ### Cancel Import
 
-When the Spark load job status is not `CANCELLED` or `FINISHED`, it can be cancelled manually by the user by specifying the Label of the import job.
+When a Spark Load job's status is not `CANCELLED` or `FINISHED`, users can manually cancel it by specifying the Label of the import job.
 
 ---
 
 ## Related System Configurations
 
-**FE Configuration:** The following configuration is the system-level configuration of Spark load, which applies to all Spark load import jobs. The configuration values can be adjusted mainly by modifying `fe.conf`.
+**FE Configuration:** The following configurations are system-level configurations for Spark Load and apply to all Spark Load import jobs. Configuration values can be adjusted by modifying `fe.conf`.
 
-- enable-spark-load: Enable Spark load and resource creation with a default value of false.
-- spark-load-default-timeout-second: The default timeout for the job is 259200 seconds (3 days).
-- spark-home-default-dir: The Spark client path (`fe/lib/spark2x`).
-- spark-resource-path: The path to the packaged S     park dependency file (empty by default).
-- spark-launcher-log-dir: The directory where the commit log of the Spark client is stored (`fe/log/spark-launcher-log`).
-- yarn-client-path: The path to the yarn binary executable (`fe/lib/yarn-client/hadoop/bin/yarn`).
-- yarn-config-dir: Yarn's configuration file path (`fe/lib/yarn-config`).
+- `enable-spark-load`: Enables Spark Load and resource creation, default value is false.
+- `spark-load-default-timeout-second`: Default timeout for jobs is 259200 seconds (3 days).
+- `spark-home-default-dir`: Spark client path (`fe/lib/spark2x`).
+- `spark-resource-path`: Path to the packaged Spark dependency file (default is empty).
+- `spark-launcher-log-dir`: Directory where Spark client submission logs are stored (`fe/log/spark-launcher-log`).
+- `yarn-client-path`: Path to the Yarn binary executable (`fe/lib/yarn-client/hadoop/bin/yarn`).
+- `yarn-config-dir`: Path to Yarn's configuration files (`fe/lib/yarn-config`).
 
 ---
 
 ## Best Practices
 
-The most suitable scenario for using Spark load is when the raw data is in the file system (HDFS) and the data volume is in the tens of GB to TB level. Use Stream Load or Broker Load for smaller data volumes.
+Spark Load is most suitable when the raw data is located in a file system (HDFS) and the data volume is in the range of tens of GB to TB. For smaller data volumes, use Stream Load or Broker Load.
 
-For the full spark load import example, refer to the demo on github: [https://github.com/StarRocks/demo/blob/master/docs/03_sparkLoad2StarRocks.md](https://github.com/StarRocks/demo/blob/master/docs/03_sparkLoad2StarRocks.md)
+For a complete Spark Load import example, please refer to the demo on GitHub: [https://github.com/StarRocks/demo/blob/master/docs/03_sparkLoad2StarRocks.md](https://github.com/StarRocks/demo/blob/master/docs/03_sparkLoad2StarRocks.md)
 
-## FAQs
+## Frequently Asked Questions
 
 - `Error: When running with master 'yarn' either HADOOP-CONF-DIR or YARN-CONF-DIR must be set in the environment.`
 
- Using Spark Load without configuring the `HADOOP-CONF-DIR` environment variable in `spark-env.sh` of the Spark client.
+When using Spark Load, the `HADOOP-CONF-DIR` environment variable is not configured in the Spark client's `spark-env.sh`.
 
 - `Error: Cannot run program "xxx/bin/spark-submit": error=2, No such file or directory`
 
- The `spark_home_default_dir` configuration item does not specify the Spark client root directory when using Spark Load.
+When using Spark Load, the `spark_home_default_dir` configuration item does not specify the Spark client's root directory.
 
 - `Error: File xxx/jars/spark-2x.zip does not exist.`
 
- The `spark-resource-path` configuration item does not point to the packed zip file when using Spark load.
+When using Spark Load, the `spark-resource-path` configuration item does not point to the packaged zip file.
 
 - `Error: yarn client does not exist in path: xxx/yarn-client/hadoop/bin/yarn`
 
- The yarn-client-path configuration item does not specify the yarn executable when using Spark load.
+When using Spark Load, the `yarn-client-path` configuration item does not specify the Yarn executable file.
 
 - `ERROR: Cannot execute hadoop-yarn/bin/... /libexec/yarn-config.sh`
 
- When using Hadoop with CDH, you need to configure the `HADOOP_LIBEXEC_DIR` environment variable.
- Since `hadoop-yarn` and hadoop directories are different, the default `libexec` directory will look for `hadoop-yarn/bin/... /libexec`, while `libexec` is in the hadoop directory.
- The ```yarn application status`` command to get the Spark task status reported an error causing the import job to fail.
+When using Hadoop with CDH, the `HADOOP_LIBEXEC_DIR` environment variable needs to be configured.
+Since the `hadoop-yarn` and hadoop directories are different, the default `libexec` directory will look for `hadoop-yarn/bin/... /libexec`, while `libexec` is located in the hadoop directory.
+The `yarn application status` command reports an error when getting the Spark task status, causing the import job to fail.
