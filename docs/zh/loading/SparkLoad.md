@@ -23,7 +23,7 @@ Spark Load 是一种**异步**导入方法，用户需要通过 MySQL 协议创�
 
 用户通过 MySQL 客户端提交 Spark 类型的导入作业；FE 记录元数据并返回提交结果。
 
-spark load 任务的执行分为以下几个主要阶段。
+Something spark load 任务的执行分为以下几个主要阶段。
 
 1. 用户将 spark load 作业提交给 FE。
 2. FE 调度提交 ETL 任务到 Apache Spark™ 集群执行。
