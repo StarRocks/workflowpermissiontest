@@ -129,10 +129,9 @@ jobs:
               for LANG in ja zh en; do
                 if [ "$SRC" == "$LANG" ]; then continue; fi
                 
-                GLOBAL_STR=" [x] **$LANG** for **ALL** missing/outdated files"
                 INDIVIDUAL_STR=" [x] **$LANG** for \`$FILE\`"
                 
-                if [[ "$BODY" == *"$GLOBAL_STR"* ]] || [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
+                if [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
                   echo "🚀 Starting translation for $FILE to $LANG"
                   
                   FILENAME=$(basename "$FILE")
