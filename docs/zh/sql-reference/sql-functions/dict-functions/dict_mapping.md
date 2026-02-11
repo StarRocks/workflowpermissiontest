@@ -4,11 +4,11 @@ displayed_sidebar: docs
 
 # dict_mapping
 
-返回字典表中指定键映射的值。
+返回字典表中映射到指定键的值。
 
-该函数主要用于简化全局字典表的应用。在数据加载到目标表时，StarRocks 会根据该函数的输入参数，自动从字典表中获取指定键映射的值，然后将该值加载到目标表中。
+该函数主要用于简化全局字典表的应用。在数据加载到目标表的过程中，StarRocks 自动使用该函数中的输入参数从字典表中获取映射到指定键的值，然后将该值加载到目标表中。
 
-StarRocks 自 v3.2.5 版本起支持该函数。另外请注意，目前 StarRocks 的共享数据模式不支持该函数。
+自 v3.2.5 起，StarRocks 支持此函数。另请注意，目前 StarRocks 的共享数据模式不支持此函数。
 
 ## 语法
 
@@ -22,27 +22,27 @@ key_column_expr ::= <column_name> | <expr>
 
 ## 参数
 
-- 必选参数：
-  - `[<db_name>.]<dict_table>`：字典表的名称。字典表必须是 Primary Key 表。支持的数据类型为 VARCHAR。
-  - `key_column_expr_list`：字典表中键列的表达式列表，包含一个或多个 `key_column_expr`。`key_column_expr` 可以是字典表中键列的名称，也可以是特定的键或键表达式。
+- 必填参数：
+  - `[<db_name>.]<dict_table>`: 字典表的名称，该表需要是 Primary Key 表。支持的数据类型为 VARCHAR。
+  - `key_column_expr_list`: 字典表中键列的表达式列表，包含一个或多个 `key_column_expr`。`key_column_expr` 可以是字典表中键列的名称，也可以是特定的键或键表达式。
 
-    该表达式列表必须包含字典表的所有 Primary Key 列，即表达式的总数必须与字典表中的 Primary Key 列的总数匹配。因此，当字典表使用复合 Primary Key 时，此列表中的表达式需要按顺序与表 schema 中定义的 Primary Key 列对应。此列表中的多个表达式用逗号 (`,`) 分隔。如果 `key_column_expr` 是一个特定的键或键表达式，其类型必须与字典表中对应 Primary Key 列的类型匹配。
+    此表达式列表需要包含字典表的所有 Primary Key 列，这意味着表达式的总数需要与字典表中的 Primary Key 列总数匹配。因此，当字典表使用复合主键时，此列表中的表达式需要按照表模式中定义的 Primary Key 列的顺序进行对应。此列表中的多个表达式用逗号 (`,`) 分隔。如果 `key_column_expr` 是特定的键或键表达式，其类型必须与字典表中相应 Primary Key 列的类型匹配。
 
 - 可选参数：
-  - `<value_column>`：值列的名称，也是映射列。如果未指定值列，则默认值列为字典表的 AUTO_INCREMENT 列。值列也可以定义为字典表中除自增列和 Primary Key 之外的任何列。该列的数据类型没有限制。
-  - `<null_if_not_exist>`（可选）：当字典表中不存在对应的键时，是否返回 `NULL`。有效值：
-    - `true`：如果键不存在，则返回 `NULL`。
-    - `false`（默认）：如果键不存在，则抛出异常。
+  - `<value_column>`: 值列的名称，也是映射列。如果未指定值列，则默认值列为字典表的 AUTO_INCREMENT 列。值列也可以定义为字典表中的任何列，但排除自增列和主键。列的数据类型没有限制。
+  - `<null_if_not_exist>` (可选): 如果键在字典表中不存在是否返回 NULL。有效值：
+    - `true`: 如果键不存在，则返回 Null。
+    - `false` (默认): 如果键不存在，则抛出异常。
 
 ## 返回值
 
-返回值的数据类型与值列的数据类型保持一致。如果值列是字典表的自增列，则返回值的数据类型为 BIGINT。
+返回值的类型与值列的数据类型保持一致。如果值列是字典表的自增列，则返回值的类型为 BIGINT。
 
-然而，当找不到指定键映射的值时，如果 `<null_if_not_exist>` 参数设置为 `true`，则返回 `NULL`。如果参数设置为 `false`（默认），则返回错误 `query failed if record not exist in dict table`。
+但是，当未找到指定键的映射值时，如果 `<null_if_not_exist>` 参数设置为 `true`，则返回 `NULL`。如果参数设置为 `false` (默认)，则返回错误 `query failed if record not exist in dict table`。
 
 ## 示例
 
-**示例 1：直接从字典表中查询键映射的值。**
+**示例 1：直接从字典表中查询映射到键的值。**
 
 1. 创建字典表并加载模拟数据。
 
@@ -72,7 +72,7 @@ key_column_expr ::= <column_name> | <expr>
 
       > **注意**
       >
-      > 当前 `INSERT INTO` 语句不支持部分更新。因此，请确保插入到 `dict` 键列中的值没有重复。否则，在字典表中多次插入相同的键列值会导致其在值列中映射的值发生变化。
+      > 目前 `INSERT INTO` 语句不支持部分更新。因此请确保插入到 `dict` 表键列的值没有重复。否则，在字典表中多次插入相同的键列值会导致其在值列中的映射值发生变化。
 
 2. 查询字典表中键 `a1` 映射的值。
 
@@ -86,26 +86,26 @@ key_column_expr ::= <column_name> | <expr>
     1 row in set (0.01 sec)
     ```
 
-**示例 2：表中的映射列配置为使用 `dict_mapping` 函数的生成列。因此，当数据加载到此表时，StarRocks 可以自动获取键映射的值。**
+**示例 2：表中映射列配置为使用 `dict_mapping` 函数的生成列。因此 StarRocks 可以在将数据加载到此表时自动获取映射到键的值。**
 
-1. 创建数据表，并使用 `dict_mapping('dict', order_uuid)` 将映射列配置为生成列。
+1. 创建数据表，并将映射列配置为使用 `dict_mapping('dict', order_uuid)` 的生成列。
 
     ```SQL
     CREATE TABLE dest_table1 (
         id BIGINT,
-        -- 此列记录 STRING 类型的订单号，对应示例 1 中 dict 表的 order_uuid 列。
+        -- 该列记录 STRING 类型的订单号，对应示例 1 中 dict 表的 order_uuid 列。
         order_uuid STRING,
-        batch int comment '用于区分不同的批次加载',
-        -- 此列记录与 order_uuid 列映射的 BIGINT 类型订单号。
-        -- 由于此列是配置了 dict_mapping 的生成列，因此在数据加载期间，此列中的值会自动从示例 1 中的 dict 表中获取。
-        -- 随后，此列可以直接用于去重和 JOIN 查询。
+        batch int comment 'used to distinguish different batch loading',
+        -- 该列记录与 order_uuid 列映射的 BIGINT 类型订单号。
+        -- 由于该列是使用 dict_mapping 配置的生成列，在数据加载过程中，该列的值会自动从示例 1 中的 dict 表中获取。
+        -- 随后，该列可以直接用于去重和 JOIN 查询。
         order_id_int BIGINT AS dict_mapping('dict', order_uuid)
     )
     DUPLICATE KEY (id, order_uuid)
     DISTRIBUTED BY HASH(id);
     ```
 
-2. 当向此表（其中 `order_id_int` 列配置为 `dict_mapping('dict', 'order_uuid')`）加载模拟数据时，StarRocks 会根据 `dict` 表中键与值的映射关系自动将值加载到 `order_id_int` 列中。
+2. 当将模拟数据加载到此表中时，其中 `order_id_int` 列配置为 `dict_mapping('dict', 'order_uuid')`，StarRocks 会根据 `dict` 表中键值之间的映射关系自动将值加载到 `order_id_int` 列。
 
       ```SQL
       MySQL [test]> INSERT INTO dest_table1(id, order_uuid, batch) VALUES (1, 'a1', 1), (2, 'a1', 1), (3, 'a3', 1), (4, 'a3', 1);
@@ -124,13 +124,13 @@ key_column_expr ::= <column_name> | <expr>
       4 rows in set (0.02 sec)
       ```
 
-    此示例中 `dict_mapping` 的用法可以加速[去重计算和 JOIN 查询](../../../using_starrocks/query_acceleration_with_auto_increment.md)。与以前通过构建全局字典来加速精确去重的解决方案相比，使用 `dict_mapping` 的解决方案更加灵活和用户友好。因为在“将键和值之间的映射关系加载到表中”的阶段，映射值直接从字典表中获取。您无需编写语句来 JOIN 字典表以获取映射值。此外，此解决方案支持各种数据加载方法。<!--For detailed usage, please refer to xxx.-->
+    此示例中 `dict_mapping` 的用法可以加速 [去重计算和 JOIN 查询](../../../using_starrocks/query_acceleration_with_auto_increment.md)。与以前构建全局字典以加速精确去重的解决方案相比，使用 `dict_mapping` 的解决方案更加灵活和用户友好。因为在“将键值之间的映射关系加载到表中”阶段，映射值直接从字典表中获取。您无需编写语句来 JOIN 字典表以获取映射值。此外，此解决方案支持各种数据加载方法。<!--有关详细用法，请参阅 xxx。-->
 
-**示例 3：如果表中的映射列未配置为生成列，则在将数据加载到表中时，需要为映射列显式配置 `dict_mapping` 函数，以获取键映射的值。**
+**示例 3：如果表中的映射列未配置为生成列，则在将数据加载到表时，需要为映射列显式配置 `dict_mapping` 函数，以获取映射到键的值。**
 
 > **注意**
 >
-> 示例 3 与示例 2 的区别在于，当导入数据到数据表时，您需要修改导入命令，为映射列显式配置 `dict_mapping` 表达式。
+> 示例 3 和示例 2 的区别在于，导入数据表时，需要修改导入命令，为映射列显式配置 `dict_mapping` 表达式。
 
 1. 创建表。
 
@@ -139,13 +139,13 @@ key_column_expr ::= <column_name> | <expr>
         id BIGINT,
         order_uuid STRING,
         order_id_int BIGINT NULL,
-        batch int comment '用于区分不同的批次加载'
+        batch int comment 'used to distinguish different batch loading'
     )
     DUPLICATE KEY (id, order_uuid, order_id_int)
     DISTRIBUTED BY HASH(id);
     ```
 
-2. 当模拟数据加载到此表时，您可以通过配置 `dict_mapping` 从字典表中获取映射值。
+2. 当模拟数据加载到此表中时，您通过配置 `dict_mapping` 从字典表中获取映射值。
 
     ```SQL
     MySQL [test]> INSERT INTO dest_table2 VALUES (1, 'a1', dict_mapping('dict', 'a1'), 1);
@@ -163,16 +163,16 @@ key_column_expr ::= <column_name> | <expr>
 
 **示例 4：启用 null_if_not_exist 模式**
 
-当 `<null_if_not_exist>` 模式被禁用时，如果查询字典表中不存在的键所映射的值，将返回错误而不是 `NULL`。这确保了数据行的键首先被加载到字典表中并生成其映射值（字典 ID），然后该数据行才被加载到目标表中。
+当 `<null_if_not_exist>` 模式被禁用，并且查询字典表中不存在的键所映射的值时，会返回一个错误而不是 `NULL`。这确保了数据行的键在加载到目标表之前，首先被加载到字典表并生成其映射值（字典 ID）。
 
 ```SQL
 MySQL [test]>  SELECT dict_mapping('dict', 'b1', true);
 ERROR 1064 (HY000): Query failed if record not exist in dict table.
 ```
 
-**示例 5：如果字典表使用复合 Primary Key，查询时必须指定所有 Primary Key。**
+**示例 5：如果字典表使用复合主键，查询时必须指定所有主键。**
 
-1. 创建具有复合 Primary Key 的字典表，并加载模拟数据。
+1. 创建具有复合主键的字典表并加载模拟数据。
 
       ```SQL
       MySQL [test]> CREATE TABLE dict2 (
@@ -180,7 +180,7 @@ ERROR 1064 (HY000): Query failed if record not exist in dict table.
           order_date DATE,
           order_id_int BIGINT AUTO_INCREMENT
       )
-      PRIMARY KEY (order_uuid,order_date)  -- 复合 Primary Key
+      PRIMARY KEY (order_uuid,order_date)  -- composite primary Key
       DISTRIBUTED BY HASH (order_uuid,order_date)
       ;
       Query OK, 0 rows affected (0.02 sec)
@@ -201,13 +201,13 @@ ERROR 1064 (HY000): Query failed if record not exist in dict table.
       3 rows in set (0.01 sec)
       ```
 
-2. 查询字典表中键映射的值。由于字典表具有复合 Primary Key，因此需要在 `dict_mapping` 中指定所有 Primary Key。
+2. 查询字典表中键映射的值。由于字典表具有复合主键，因此在 `dict_mapping` 中需要指定所有主键。
 
       ```SQL
       SELECT dict_mapping('dict2', 'a1', cast('2023-11-22' as DATE));
       ```
 
-   请注意，当只指定一个 Primary Key 时会发生错误。
+   请注意，只指定一个 Primary Key 会报错。
 
       ```SQL
       MySQL [test]> SELECT dict_mapping('dict2', 'a1');
