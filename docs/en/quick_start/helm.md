@@ -18,7 +18,7 @@ import Curl from '../_assets/quick-start/_curl.mdx'
 
 The goals of this quickstart are:
 
-- Deploy the StarRocks Kubernetes Operator and a StarRocks cluster with Helm
+- Deploy StarRocks Kubernetes Operator and a StarRocks cluster with Helm
 - Configure a password for the StarRocks database user `root`
 - Provide for high-availability with three FEs and three BEs
 - Store metadata in persistent storage
