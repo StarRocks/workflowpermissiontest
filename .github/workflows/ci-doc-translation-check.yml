@@ -56,7 +56,7 @@ jobs:
 
       # 1. Checkout the PR's Merge Commit so we can see the NEW files
       - name: Checkout PR Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Critical: Checkout the merge commit, not the default 'main'
           ref: refs/pull/${{ steps.pr_context.outputs.pr_number }}/merge
