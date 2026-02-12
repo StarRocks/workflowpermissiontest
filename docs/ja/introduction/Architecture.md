@@ -17,6 +17,7 @@ StarRocks は、shared-nothing (各 BE がローカルストレージにデー�
 
 ![Architecture choices](../_assets/architecture_choices.png)
 
+
 ### Shared-nothing
 
 ローカルストレージは、リアルタイムクエリのクエリレイテンシを向上させます。
