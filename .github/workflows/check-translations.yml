@@ -100,7 +100,7 @@ jobs:
                 if [ "$has_zh" = true ]; then
                   auto_missing+="- [ ] zh en $rel_path"$'\n'
                 else
-                  manual_missing+="- en/$rel_path (required source for other translations)"$'\n'
+                  manual_missing+="- en/$rel_path"$'\n'
                 fi
               fi
             
@@ -109,7 +109,7 @@ jobs:
                 if [ "$has_en" = true ]; then
                   auto_missing+="- [ ] en zh $rel_path"$'\n'
                 else
-                  manual_missing+="- en/$rel_path (required source for other translations)"$'\n'
+                  manual_missing+="- zh/$rel_path"$'\n'
                 fi
               fi
             
@@ -118,7 +118,7 @@ jobs:
                 if [ "$has_en" = true ]; then
                   auto_missing+="- [ ] en ja $rel_path"$'\n'
                 else
-                  manual_missing+="- en/$rel_path (required source for other translations)"$'\n'
+                  manual_missing+="- ja/$rel_path"$'\n'
                 fi
               fi
             fi
@@ -181,16 +181,18 @@ jobs:
           if [ -n "$MANUAL_CONTENT" ]; then
             cat >> comment_body.md << 'EOF'
           
-          ### Missing Translations (Require manual translation)
-          
-          ⚠️ **Note:** These translations cannot be auto-generated because the required source file does not exist in this PR. Please add the source file to enable automatic translation:
-          
-          - **English** (`en/...`) is required as source for all other translations.
-          - **Chinese** (`zh/...`) is required as source for English translations.
-          - Japanese can never be a source file.
+          ### Missing Translations (Require manual translation by a member of docs-maintainer)
           
           EOF
             cat manual_translations.txt >> comment_body.md
+            cat >> comment_body.md << 'EOF'
+          
+          ⚠️ **Note:** These translations cannot be auto-generated because the required source file does not exist in this PR. Please add the source file to enable automatic translation:
+          
+          - **English** (`en/...`) can be the source for translation to Chinese and Japanese.
+          - **Chinese** (`zh/...`) can be the source for translation to English.
+          - Japanese can never be a source file.
+          EOF
           fi
           
           cat >> comment_body.md << 'EOF'
