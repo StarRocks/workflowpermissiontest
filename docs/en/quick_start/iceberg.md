@@ -11,6 +11,8 @@ import Clients from '../_assets/quick-start/_clientsCompose.mdx'
 
 # Apache Iceberg Lakehouse
 
+ice ice baby
+
 This guide will get you up and running with Apache Iceberg™ using StarRocks™, including sample code to highlight some
 powerful features.
 
