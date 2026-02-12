@@ -359,7 +359,12 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
-          --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("translation-check-comment"))) | .id' | head -1)
+              --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("translation-check-comment"))) | .id' | head -1)
+            
+            if [ -n "$comment_id" ]; then
+              # Update the existing comment
+              gh api \
+                --method PATCH \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/issues/comments/$comment_id \
