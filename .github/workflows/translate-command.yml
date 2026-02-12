@@ -211,40 +211,59 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          set -x
           cd "$GITHUB_WORKSPACE"
+          
+          echo "=== Checking missing_translations.txt ==="
+          ls -la missing_translations.txt
+          echo "=== Contents ==="
+          cat missing_translations.txt
+          echo "=== Starting loop ==="
           
           translation_count=0
           failed_count=0
           
           while IFS= read -r line; do
+            echo ">>> Processing: $line"
+            
             # Parse line: source_lang:target_lang:source_file
             IFS=':' read -r source_lang target_lang source_file <<< "$line"
+            
+            echo ">>> Parsed: source=$source_lang, target=$target_lang, file=$source_file"
             
             # Derive target file path
             target_file=$(echo "$source_file" | sed "s|docs/$source_lang/|docs/$target_lang/|")
             
-            # Create target directory if it doesn't exist
+            echo ">>> Target: $target_file"
+            echo ">>> Creating dir: $(dirname "$target_file")"
             mkdir -p "$(dirname "$target_file")"
             
-            echo "Translating $source_file ($source_lang) -> $target_file ($target_lang)"
-            
-            # Run translation using markdown-translator CLI
-            # The tool translates from English to other languages
+            echo ">>> Translating $source_file -> $target_file"
             cd markdown-translator
-            echo "  Command: node bin/cli.js translate -i '../$source_file' -l '$target_lang' -o '../$target_file'"
-            if node bin/cli.js translate \
+            
+            echo ">>> Running: node bin/cli.js translate -i '../$source_file' -l '$target_lang' -o '../$target_file'"
+            node bin/cli.js translate \
               -i "../$source_file" \
               -l "$target_lang" \
-              -o "../$target_file" 2>&1; then
+              -o "../$target_file"
+            
+            trans_exit=$?
+            echo ">>> Translation exit code: $trans_exit"
+            
+            if [ $trans_exit -eq 0 ]; then
               translation_count=$((translation_count + 1))
-              echo "✓ Successfully translated to $target_file"
+              echo ">>> SUCCESS"
             else
-              exit_code=$?
               failed_count=$((failed_count + 1))
-              echo "✗ Failed to translate to $target_file (exit code: $exit_code)"
+              echo ">>> FAILED with exit code $trans_exit"
             fi
+            
             cd "$GITHUB_WORKSPACE"
           done < missing_translations.txt
+          
+          echo "=== FINAL RESULTS ==="
+          echo "Successful: $translation_count"
+          echo "Failed: $failed_count"
           
           echo "translation_count=$translation_count" >> $GITHUB_OUTPUT
           echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
