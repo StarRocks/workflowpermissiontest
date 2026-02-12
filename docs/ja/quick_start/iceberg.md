@@ -1,25 +1,24 @@
----
+```md
 displayed_sidebar: docs
 sidebar_position: 3
-description: Apache Iceberg を用いたデータレイクハウス
+description: Apache Iceberg を使用したデータレイクハウス
 toc_max_heading_level: 2
 keywords: [ 'iceberg' ]
----
 
 import DataLakeIntro from '../_assets/commonMarkdown/datalakeIntro.mdx'
 import Clients from '../_assets/quick-start/_clientsCompose.mdx'
 
-# Apache Iceberg レイクハウス
+# Apache Iceberg Lakehouse
 
 ice ice baby
 
-このガイドでは、Apache Iceberg™を StarRocks™ で使い始めるための手順を説明します。強力な機能を強調するためのサンプルコードも含まれています。
+このガイドでは、StarRocks™ を使用して Apache Iceberg™ をセットアップし、強力な機能を紹介するサンプルコードを含め、すぐに利用できるようにします。
 
 ### Docker-Compose
 
-最も早く開始する方法は、`starrocks/fe-ubuntu` と `starrocks/be-ubuntu` イメージを使用する Docker-Compose ファイルを利用することです。これらのイメージには、Iceberg catalog が構成されたローカルの StarRocks クラスタが含まれています。これを使用するには、Docker CLI をインストールする必要があります。
+最も早く開始する方法は、`starrocks/fe-ubuntu` と `starrocks/be-ubuntu` イメージを使用する docker-compose ファイルを利用することです。これらのイメージには、Iceberg catalog が構成されたローカルの StarRocks クラスターが含まれています。これを使用するには、Docker CLI をインストールする必要があります。
 
-Docker のインストールが完了したら、以下の YAML を `docker-compose.yml` というファイル名で保存します。
+Docker をインストールしたら、以下の yaml を `docker-compose.yml` という名前のファイルに保存します。
 
 ```yml
 services:
@@ -225,13 +224,13 @@ SELECT *
 FROM demo.nyc.taxis;
 ```
 
-### データがオブジェクトストレージに保存されていることの確認
+### データがオブジェクトストレージに保存されていることを確認する
 
-external catalog を追加して使用すると、StarRocks は `demo.nyc.taxis` テーブルのオブジェクトストアとして MinIO の使用を開始しました。http://localhost:9001 にアクセスし、Object Browser メニューから `warehouse/nyc/taxis/` に移動すると、StarRocks がストレージに MinIO を使用していることを確認できます。
+external catalog を追加して使用すると、StarRocks は `demo.nyc.taxis` テーブルのオブジェクトストアとして MinIO の使用を開始します。`http://localhost:9001` に移動し、Object Browser メニューから `warehouse/nyc/taxis/` に移動すると、StarRocks がストレージに MinIO を使用していることを確認できます。
 
 :::tip
 
-MinIO のユーザー名とパスワードは `docker-compose.yml` ファイルに含まれています。パスワードをより強力なものに変更するよう促されますが、このチュートリアルではこのアドバイスを無視してください。
+MinIO のユーザー名とパスワードは `docker-compose.yml` ファイルに記載されています。より良いパスワードに変更するよう求められますが、このチュートリアルではこのアドバイスを無視してください。
 
 ![img](../_assets/quick-start/MinIO-Iceberg-data.png)
 :::
@@ -240,8 +239,9 @@ MinIO のユーザー名とパスワードは `docker-compose.yml` ファイル�
 
 #### StarRocks への Iceberg の追加
 
-StarRocks 3.2.0 以降の環境をすでにお持ちの場合、Iceberg 1.6.0 が含まれています。追加のダウンロードや jar ファイルは不要です。
+StarRocks 3.2.0 以降の環境が既にある場合は、Iceberg 1.6.0 が含まれています。追加のダウンロードや jar ファイルは必要ありません。
 
 #### 詳細
 
-Iceberg と StarRocks の使用を開始しましたので、詳細については [StarRocks-Iceberg ドキュメント](../data_source/catalog/iceberg/iceberg_catalog.md) を参照してください。
+Iceberg と StarRocks を使用する準備が整いました。詳細については、 [StarRocks-Iceberg ドキュメント](../data_source/catalog/iceberg/iceberg_catalog.md) を参照してください。
+```
