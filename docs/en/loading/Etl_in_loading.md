@@ -1,6 +1,7 @@
 ---
 displayed_sidebar: docs
 ---
+
 # Transform data at loading
 
 import InsertPrivNote from '../_assets/commonMarkdown/insertPrivNote.mdx'
