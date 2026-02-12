@@ -71,6 +71,12 @@ def detect_missing_translations(changed_files):
     return auto_missing, manual_missing
 
 
+def get_language_name(lang_code):
+    """Convert language code to full name."""
+    names = {'en': 'English', 'zh': 'Chinese', 'ja': 'Japanese'}
+    return names.get(lang_code, lang_code)
+
+
 def format_comment_body(auto_missing, manual_missing):
     """Format the GitHub comment body."""
     lines = [
@@ -97,7 +103,9 @@ def format_comment_body(auto_missing, manual_missing):
                 "",
             ])
             for source_lang, target_lang, rel_path in auto_missing:
-                lines.append(f"- [ ] {source_lang} {target_lang} {rel_path}")
+                source_name = get_language_name(source_lang)
+                target_name = get_language_name(target_lang)
+                lines.append(f"- [ ] {source_name} to {target_name}: {rel_path}")
             lines.append("")
         
         # Manual-only section
