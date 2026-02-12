@@ -98,45 +98,45 @@ jobs:
               # Check English - needs Chinese as source
               if [ "$has_en" = false ]; then
                 if [ "$has_zh" = true ]; then
-                  auto_missing="${auto_missing}- [ ] **ZH → EN**: \`$rel_path\` *(auto-generated)*%0A"
+                  auto_missing+="- [ ] **ZH → EN**: \`$rel_path\` *(auto-generated)*"$'\n'
                 else
-                  manual_missing="${manual_missing}- [ ] **English**: \`$rel_path\` (requires Chinese source)%0A"
+                  manual_missing+="- [ ] **English**: \`$rel_path\` (requires Chinese source)"$'\n'
                 fi
               fi
               
               # Check Chinese - needs English as source
               if [ "$has_zh" = false ]; then
                 if [ "$has_en" = true ]; then
-                  auto_missing="${auto_missing}- [ ] **EN → ZH**: \`$rel_path\` *(auto-generated)*%0A"
+                  auto_missing+="- [ ] **EN → ZH**: \`$rel_path\` *(auto-generated)*"$'\n'
                 else
-                  manual_missing="${manual_missing}- [ ] **Chinese**: \`$rel_path\` (requires English source)%0A"
+                  manual_missing+="- [ ] **Chinese**: \`$rel_path\` (requires English source)"$'\n'
                 fi
               fi
               
               # Check Japanese - needs English as source
               if [ "$has_ja" = false ]; then
                 if [ "$has_en" = true ]; then
-                  auto_missing="${auto_missing}- [ ] **EN → JA**: \`$rel_path\` *(auto-generated)*%0A"
+                  auto_missing+="- [ ] **EN → JA**: \`$rel_path\` *(auto-generated)*"$'\n'
                 else
-                  manual_missing="${manual_missing}- [ ] **Japanese**: \`$rel_path\` (requires English source)%0A"
+                  manual_missing+="- [ ] **Japanese**: \`$rel_path\` (requires English source)"$'\n'
                 fi
               fi
             fi
             
             if [ -n "$auto_missing" ]; then
-              missing_translations="${missing_translations}%0A**File: \`$rel_path\`**%0A${auto_missing}"
+              missing_translations+=$'**File: `'"$rel_path"$'`**\n'"$auto_missing"
             fi
             
             if [ -n "$manual_missing" ]; then
-              manual_only_translations="${manual_only_translations}%0A**File: \`$rel_path\`**%0A${manual_missing}"
+              manual_only_translations+=$'**File: `'"$rel_path"$'`**\n'"$manual_missing"
             fi
           done
           
           if [ -n "$missing_translations" ] || [ -n "$manual_only_translations" ]; then
             echo "has_missing=true" >> $GITHUB_OUTPUT
             # Save to files for the next step
-            echo "$missing_translations" > missing_translations.txt
-            echo "$manual_only_translations" > manual_translations.txt
+            printf '%s' "$missing_translations" > missing_translations.txt
+            printf '%s' "$manual_only_translations" > manual_translations.txt
           else
             echo "has_missing=false" >> $GITHUB_OUTPUT
           fi
@@ -174,7 +174,7 @@ jobs:
           Please check the boxes below for the translations you would like to request. A docs maintainer can trigger automatic translation by commenting `/translate` on this PR.
           
           EOF
-            echo "$MISSING_CONTENT" | sed 's/%0A/\n/g' >> comment_body.md
+            cat missing_translations.txt >> comment_body.md
           fi
           
           # Add manual-only section if there are any
@@ -189,7 +189,7 @@ jobs:
           - **Chinese** and **Japanese** translations require an English source file
           
           EOF
-            echo "$MANUAL_CONTENT" | sed 's/%0A/\n/g' >> comment_body.md
+            cat manual_translations.txt >> comment_body.md
           fi
           
           cat >> comment_body.md << 'EOF'
@@ -205,7 +205,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               /repos/${{ github.repository }}/issues/comments/${{ steps.find-comment.outputs.comment-id }} \
-              -f body="$(cat comment_body.md)"
+              -f body=@comment_body.md
           else
             gh pr comment ${{ github.event.pull_request.number }} --body-file comment_body.md
           fi

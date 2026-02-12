@@ -126,8 +126,22 @@ jobs:
               # Look for checked boxes: - [x] or - [X]
               if re.match(r'^\s*-\s*\[[xX]\]', line):
                   # Extract the source language, target language, and file path
-                  # Pattern: **SOURCE → TARGET**: `file/path.md`
+                  # Handle multiple regex patterns to account for potential markdown rendering variations:
+                  #  - **EN → ZH**: `file/path.md` (ideal)
+                  #  - **EN →** **ZH**: `file/path.md` (arrow causes bold break)
+                  #  - EN → ZH: `file/path.md` (no bold)
+                  
+                  # Try pattern 1: **LANG → LANG**: `path`
                   match = re.search(r'\*\*(EN|ZH|JA)\s*→\s*(EN|ZH|JA)\*\*:\s*`([^`]+)`', line)
+                  
+                  # Try pattern 2: **LANG →** **LANG**: `path` (arrow causes bold break)
+                  if not match:
+                      match = re.search(r'\*\*(EN|ZH|JA)\s*→\*\*\s*\*\*(EN|ZH|JA)\*\*:\s*`([^`]+)`', line)
+                  
+                  # Try pattern 3: LANG → LANG: `path` (no bold markers)
+                  if not match:
+                      match = re.search(r'(EN|ZH|JA)\s*→\s*(EN|ZH|JA):\s*`([^`]+)`', line)
+                  
                   if match:
                       source_lang = match.group(1).lower()
                       target_lang = match.group(2).lower()
