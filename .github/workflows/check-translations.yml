@@ -1,0 +1,183 @@
+name: Check Translation Completeness
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'docs/en/**'
+      - 'docs/zh/**'
+      - 'docs/ja/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-translations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get the base and head commits
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Get list of changed files in docs directories
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^docs/(en|zh|ja)/' > changed_files.txt || true
+          
+          if [ ! -s changed_files.txt ]; then
+            echo "No documentation files changed"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Documentation files changed:"
+            cat changed_files.txt
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check translation completeness
+        if: steps.changed-files.outputs.has_changes == 'true'
+        id: check-completeness
+        run: |
+          # Read changed files
+          mapfile -t changed_files < changed_files.txt
+          
+          # Arrays to track missing translations
+          declare -A files_by_path
+          declare -A langs_present
+          
+          # Process each changed file
+          for file in "${changed_files[@]}"; do
+            # Extract language and relative path
+            if [[ $file =~ ^docs/(en|zh|ja)/(.+)$ ]]; then
+              lang="${BASH_REMATCH[1]}"
+              rel_path="${BASH_REMATCH[2]}"
+              
+              # Track this file's relative path
+              if [ -z "${files_by_path[$rel_path]}" ]; then
+                files_by_path[$rel_path]="$lang"
+              else
+                files_by_path[$rel_path]="${files_by_path[$rel_path]},$lang"
+              fi
+            fi
+          done
+          
+          # Check which files are missing translations
+          missing_translations=""
+          
+          for rel_path in "${!files_by_path[@]}"; do
+            langs="${files_by_path[$rel_path]}"
+            
+            # Check which languages are present
+            has_en=false
+            has_zh=false
+            has_ja=false
+            
+            IFS=',' read -ra lang_array <<< "$langs"
+            for lang in "${lang_array[@]}"; do
+              case $lang in
+                en) has_en=true ;;
+                zh) has_zh=true ;;
+                ja) has_ja=true ;;
+              esac
+            done
+            
+            # Build list of missing translations
+            missing=""
+            if [ "$has_en" = true ] || [ "$has_zh" = true ] || [ "$has_ja" = true ]; then
+              if [ "$has_en" = false ]; then
+                missing="${missing}- [ ] \`docs/en/$rel_path\`%0A"
+              fi
+              if [ "$has_zh" = false ]; then
+                missing="${missing}- [ ] \`docs/zh/$rel_path\`%0A"
+              fi
+              if [ "$has_ja" = false ]; then
+                missing="${missing}- [ ] \`docs/ja/$rel_path\`%0A"
+              fi
+            fi
+            
+            if [ -n "$missing" ]; then
+              missing_translations="${missing_translations}%0A**File: \`$rel_path\`**%0A${missing}"
+            fi
+          done
+          
+          if [ -n "$missing_translations" ]; then
+            echo "has_missing=true" >> $GITHUB_OUTPUT
+            # Save to file for the next step
+            echo "$missing_translations" > missing_translations.txt
+          else
+            echo "has_missing=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Find existing translation comment
+        if: steps.check-completeness.outputs.has_missing == 'true'
+        id: find-comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- translation-check-comment -->'
+
+      - name: Create or update comment
+        if: steps.check-completeness.outputs.has_missing == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            <!-- translation-check-comment -->
+            ## 🌍 Translation Check
+            
+            This PR contains documentation changes that are missing translations in some languages.
+            
+            ### Missing Translations
+            
+            Please check the boxes below for the translations you would like to request. A docs maintainer can trigger automatic translation by commenting `/translate` on this PR.
+            
+            $(cat missing_translations.txt)
+            
+            ---
+            *If you've already added these translations manually, please disregard this message. The check will update automatically.*
+
+      - name: Add needs_translation label
+        if: steps.check-completeness.outputs.has_missing == 'true'
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --add-label "needs_translation"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove labels if translations complete
+        if: steps.changed-files.outputs.has_changes == 'true' && steps.check-completeness.outputs.has_missing == 'false'
+        run: |
+          # Remove needs_translation label if it exists
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label "needs_translation" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update comment if translations complete
+        if: steps.changed-files.outputs.has_changes == 'true' && steps.check-completeness.outputs.has_missing == 'false'
+        uses: peter-evans/find-comment@v3
+        id: find-complete-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- translation-check-comment -->'
+
+      - name: Mark translations as complete
+        if: steps.changed-files.outputs.has_changes == 'true' && steps.check-completeness.outputs.has_missing == 'false' && steps.find-complete-comment.outputs.comment-id != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-complete-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- translation-check-comment -->
+            ## ✅ Translation Check Complete
+            
+            All translations for the changed documentation files are present in this PR!

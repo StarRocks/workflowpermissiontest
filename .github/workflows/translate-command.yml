@@ -1,0 +1,320 @@
+name: Handle Translation Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  translate:
+    # Only run if the comment is on a PR and contains /translate
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/translate')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if commenter is docs-maintainer
+        id: check-permission
+        run: |
+          # Check if the user is a member of the docs-maintainer team
+          # Organization: extract from repository (e.g., "owner/repo" -> "owner")
+          ORG=$(echo "${{ github.repository }}" | cut -d'/' -f1)
+          USER="${{ github.event.comment.user.login }}"
+          
+          # Check team membership using GitHub API
+          response=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/$ORG/teams/docs-maintainer/memberships/$USER \
+            --silent 2>&1 || echo "not_member")
+          
+          if [[ "$response" == *"not_member"* ]] || [[ "$response" == *"Not Found"* ]]; then
+            echo "User $USER is not a member of docs-maintainer team"
+            echo "is_maintainer=false" >> $GITHUB_OUTPUT
+          else
+            echo "User $USER is a member of docs-maintainer team"
+            echo "is_maintainer=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add reaction to comment
+        if: steps.check-permission.outputs.is_maintainer == 'true'
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -f content='rocket'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR details
+        if: steps.check-permission.outputs.is_maintainer == 'true'
+        id: pr-details
+        run: |
+          PR_DATA=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }})
+          
+          HEAD_REF=$(echo "$PR_DATA" | jq -r '.head.ref')
+          HEAD_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
+          HEAD_REPO=$(echo "$PR_DATA" | jq -r '.head.repo.full_name')
+          BASE_SHA=$(echo "$PR_DATA" | jq -r '.base.sha')
+          IS_FORK=$(echo "$PR_DATA" | jq -r '.head.repo.fork')
+          
+          echo "head_ref=$HEAD_REF" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "head_repo=$HEAD_REPO" >> $GITHUB_OUTPUT
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+          echo "is_fork=$IS_FORK" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout PR branch
+        if: steps.check-permission.outputs.is_maintainer == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pr-details.outputs.head_repo }}
+          ref: ${{ steps.pr-details.outputs.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get files needing translation
+        if: steps.check-permission.outputs.is_maintainer == 'true'
+        id: get-files
+        run: |
+          # Get the base and head commits
+          BASE_SHA="${{ steps.pr-details.outputs.base_sha }}"
+          HEAD_SHA="${{ steps.pr-details.outputs.head_sha }}"
+          
+          # Get list of changed files in docs directories
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^docs/(en|zh|ja)/' > changed_files.txt || true
+          
+          if [ ! -s changed_files.txt ]; then
+            echo "No documentation files to translate"
+            echo "has_files=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Find missing translations
+          python3 << 'PYTHON_SCRIPT'
+          import os
+          from collections import defaultdict
+          
+          # Read changed files
+          with open('changed_files.txt', 'r') as f:
+              changed_files = [line.strip() for line in f if line.strip()]
+          
+          # Group by relative path
+          files_by_path = defaultdict(set)
+          
+          for file in changed_files:
+              parts = file.split('/', 2)
+              if len(parts) == 3 and parts[0] == 'docs' and parts[1] in ['en', 'zh', 'ja']:
+                  lang = parts[1]
+                  rel_path = parts[2]
+                  files_by_path[rel_path].add(lang)
+          
+          # Find missing translations
+          missing = []
+          
+          for rel_path, langs in files_by_path.items():
+              for target_lang in ['en', 'zh', 'ja']:
+                  if target_lang not in langs:
+                      source_lang = list(langs)[0]  # Pick first available language as source
+                      missing.append(f"{source_lang}:{target_lang}:docs/{source_lang}/{rel_path}")
+          
+          # Write missing translations to file
+          if missing:
+              with open('missing_translations.txt', 'w') as f:
+                  f.write('\n'.join(missing))
+              print(f"Found {len(missing)} translations needed")
+          else:
+              print("No missing translations found")
+          PYTHON_SCRIPT
+          
+          if [ -f missing_translations.txt ]; then
+            echo "has_files=true" >> $GITHUB_OUTPUT
+            cat missing_translations.txt
+          else
+            echo "has_files=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout markdown-translator
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.get-files.outputs.has_files == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: 'StarRocks/markdown-translator'
+          ref: 'main'
+          path: 'markdown-translator'
+
+      - name: Setup Python
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.get-files.outputs.has_files == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install translation dependencies
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.get-files.outputs.has_files == 'true'
+        run: |
+          cd markdown-translator
+          pip install -r requirements.txt
+
+      - name: Generate translations
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.get-files.outputs.has_files == 'true'
+        id: translate
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          
+          translation_count=0
+          failed_count=0
+          
+          while IFS= read -r line; do
+            # Parse line: source_lang:target_lang:source_file
+            IFS=':' read -r source_lang target_lang source_file <<< "$line"
+            
+            # Derive target file path
+            target_file=$(echo "$source_file" | sed "s|docs/$source_lang/|docs/$target_lang/|")
+            
+            # Create target directory if it doesn't exist
+            mkdir -p "$(dirname "$target_file")"
+            
+            echo "Translating $source_file ($source_lang) -> $target_file ($target_lang)"
+            
+            # Run translation script
+            # Note: Adjust this command based on actual markdown-translator usage
+            cd markdown-translator
+            if python translate.py \
+              --source "../$source_file" \
+              --target "../$target_file" \
+              --source-lang "$source_lang" \
+              --target-lang "$target_lang"; then
+              translation_count=$((translation_count + 1))
+              echo "✓ Successfully translated to $target_file"
+            else
+              failed_count=$((failed_count + 1))
+              echo "✗ Failed to translate to $target_file"
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done < missing_translations.txt
+          
+          echo "translation_count=$translation_count" >> $GITHUB_OUTPUT
+          echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
+          
+          if [ $translation_count -eq 0 ]; then
+            echo "success=false" >> $GITHUB_OUTPUT
+          else
+            echo "success=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure git
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.translate.outputs.success == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push translations
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.translate.outputs.success == 'true'
+        id: push
+        run: |
+          # Add translated files
+          git add docs/en/ docs/zh/ docs/ja/
+          
+          # Check if there are changes to commit
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Commit changes
+          git commit -m "chore: add automated translations
+
+          Generated by markdown-translator
+          Triggered by: @${{ github.event.comment.user.login }}"
+          
+          # Push to PR branch
+          # For fork PRs, this requires a PAT with appropriate permissions
+          if [ "${{ steps.pr-details.outputs.is_fork }}" == "true" ]; then
+            echo "⚠️ Cannot push directly to fork. Translations need to be submitted via separate PR."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            
+            # Create a patch file instead
+            git format-patch -1 HEAD --stdout > translations.patch
+            echo "Created translations.patch"
+          else
+            git push origin ${{ steps.pr-details.outputs.head_ref }}
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add translations_added label
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.push.outputs.pushed == 'true'
+        run: |
+          gh pr edit ${{ github.event.issue.number }} --add-label "translations_added"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on success
+        if: steps.check-permission.outputs.is_maintainer == 'true' && steps.push.outputs.pushed == 'true'
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body \
+            "✅ Successfully generated and pushed ${{ steps.translate.outputs.translation_count }} translation(s).
+            
+            The \`translations_added\` label has been added to this PR."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload patch for fork PRs
+        if: |
+          steps.check-permission.outputs.is_maintainer == 'true' && 
+          steps.translate.outputs.success == 'true' && 
+          steps.pr-details.outputs.is_fork == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: translations-patch
+          path: translations.patch
+
+      - name: Comment on fork PR
+        if: |
+          steps.check-permission.outputs.is_maintainer == 'true' && 
+          steps.translate.outputs.success == 'true' && 
+          steps.pr-details.outputs.is_fork == 'true'
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body \
+            "✅ Successfully generated ${{ steps.translate.outputs.translation_count }} translation(s).
+            
+            ⚠️ Since this is a fork PR, the translations cannot be pushed directly. Please download the patch file from the workflow artifacts and apply it to your branch:
+            
+            \`\`\`bash
+            # Download translations.patch from workflow artifacts
+            git apply translations.patch
+            git add .
+            git commit -m 'chore: apply automated translations'
+            git push
+            \`\`\`"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on failure
+        if: |
+          steps.check-permission.outputs.is_maintainer == 'true' && 
+          steps.translate.outputs.success == 'false'
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body \
+            "❌ Translation failed. Please check the workflow logs for details."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on permission denied
+        if: steps.check-permission.outputs.is_maintainer == 'false'
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body \
+            "⚠️ Only members of the \`docs-maintainer\` team can trigger automatic translations."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
