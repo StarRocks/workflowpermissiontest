@@ -18,14 +18,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Get changed files
         id: changed-files
         run: |
           # Get the base and head commits
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          # Use latest commit on the branch, not the cached SHA from the event
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA=$(git rev-parse origin/${{ github.event.pull_request.head.ref }})
           
           # Get list of changed files in docs directories
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^docs/(en|zh|ja)/' > changed_files.txt || true
