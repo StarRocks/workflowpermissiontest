@@ -211,67 +211,57 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          set -x
-          cd "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE" || exit 1
           
-          echo "=== Checking missing_translations.txt ==="
-          ls -la missing_translations.txt
-          echo "=== Contents ==="
+          # Check if file exists
+          if [ ! -f missing_translations.txt ]; then
+            echo "ERROR: missing_translations.txt not found!"
+            ls -la
+            echo "success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "File found:"
           cat missing_translations.txt
-          echo "=== Starting loop ==="
           
           translation_count=0
           failed_count=0
           
-          while IFS= read -r line; do
-            echo ">>> Processing: $line"
-            
-            # Parse line: source_lang:target_lang:source_file
-            IFS=':' read -r source_lang target_lang source_file <<< "$line"
-            
-            echo ">>> Parsed: source=$source_lang, target=$target_lang, file=$source_file"
+          while IFS=: read -r source_lang target_lang source_file; do
+            echo "Processing: $source_lang -> $target_lang : $source_file"
             
             # Derive target file path
             target_file=$(echo "$source_file" | sed "s|docs/$source_lang/|docs/$target_lang/|")
             
-            echo ">>> Target: $target_file"
-            echo ">>> Creating dir: $(dirname "$target_file")"
             mkdir -p "$(dirname "$target_file")"
             
-            echo ">>> Translating $source_file -> $target_file"
-            cd markdown-translator
-            
-            echo ">>> Running: node bin/cli.js translate -i '../$source_file' -l '$target_lang' -o '../$target_file'"
-            node bin/cli.js translate \
-              -i "../$source_file" \
-              -l "$target_lang" \
-              -o "../$target_file"
-            
-            trans_exit=$?
-            echo ">>> Translation exit code: $trans_exit"
-            
-            if [ $trans_exit -eq 0 ]; then
-              translation_count=$((translation_count + 1))
-              echo ">>> SUCCESS"
-            else
+            # Check if source file exists
+            if [ ! -f "$source_file" ]; then
+              echo "  ERROR: Source file not found: $source_file"
               failed_count=$((failed_count + 1))
-              echo ">>> FAILED with exit code $trans_exit"
+              continue
             fi
             
-            cd "$GITHUB_WORKSPACE"
+            echo "  Translating to: $target_file"
+            (cd markdown-translator && node bin/cli.js translate -i "../$source_file" -l "$target_lang" -o "../$target_file")
+            
+            if [ $? -eq 0 ]; then
+              translation_count=$((translation_count + 1))
+              echo "  SUCCESS"
+            else
+              failed_count=$((failed_count + 1))
+              echo "  FAILED"
+            fi
           done < missing_translations.txt
           
-          echo "=== FINAL RESULTS ==="
-          echo "Successful: $translation_count"
-          echo "Failed: $failed_count"
-          
+          echo "Results: $translation_count successful, $failed_count failed"
           echo "translation_count=$translation_count" >> $GITHUB_OUTPUT
           echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
           
-          if [ $translation_count -eq 0 ]; then
-            echo "success=false" >> $GITHUB_OUTPUT
-          else
+          if [ $translation_count -gt 0 ]; then
             echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure git
