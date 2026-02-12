@@ -14,9 +14,11 @@ This feature supports [Stream Load](../sql-reference/sql-statements/loading_unlo
 
 This topic uses CSV data as an example to describe how to extract and transform data at loading. The data file formats that are supported vary depending on the loading method of your choice.
 
-> **NOTE**
->
-> For CSV data, you can use a UTF-8 string, such as a comma (,), tab, or pipe (|), whose length does not exceed 50 bytes as a text delimiter.
+:::note
+
+For CSV data, you can use a UTF-8 string, such as a comma (,), tab, or pipe (|), whose length does not exceed 50 bytes as a text delimiter.
+
+:::
 
 ## Scenarios
 
