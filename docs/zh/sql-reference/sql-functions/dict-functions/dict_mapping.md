@@ -12,6 +12,7 @@ displayed_sidebar: docs
 
 ## 语法
 
+
 ```SQL
 dict_mapping("[<db_name>.]<dict_table>", key_column_expr_list [, <value_column> ] [, <null_if_not_exist>] )
 
