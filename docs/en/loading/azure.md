@@ -8,6 +8,7 @@ keywords: ['Broker Load']
 
 import InsertPrivNote from '../_assets/commonMarkdown/insertPrivNote.mdx'
 
+
 StarRocks provides the following options for loading data from Azure:
 
 - Synchronous loading using [INSERT](../sql-reference/sql-statements/loading_unloading/INSERT.md)+[`FILES()`](../sql-reference/sql-functions/table-functions/files.md)
