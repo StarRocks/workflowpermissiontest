@@ -168,7 +168,7 @@ jobs:
           # Write checked translations to file
           if checked_translations:
               with open('missing_translations.txt', 'w') as f:
-                  f.write('\n'.join(checked_translations))
+                  f.write('\n'.join(checked_translations) + '\n')  # Add trailing newline
               print(f"\nTotal checked translations: {len(checked_translations)}")
           else:
               print("No checked translations found")
@@ -211,7 +211,11 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          cd "$GITHUB_WORKSPACE" || exit 1
+          set -x
+          echo "=== Starting translation generation ==="
+          cd "$GITHUB_WORKSPACE" || { echo "ERROR: Failed to cd to GITHUB_WORKSPACE"; exit 1; }
+          pwd
+          ls -la missing_translations.txt 2>&1 || echo "File missing_translations.txt not found"
           
           # Check if file exists
           if [ ! -f missing_translations.txt ]; then
@@ -221,17 +225,29 @@ jobs:
             exit 0
           fi
           
-          echo "File found:"
+          echo "=== File found - contents: ==="
           cat missing_translations.txt
+          echo "=== Starting translation process ==="
           
           translation_count=0
           failed_count=0
+          line_count=0
           
-          while IFS=: read -r source_lang target_lang source_file; do
-            echo "Processing: $source_lang -> $target_lang : $source_file"
+          # Read file line by line
+          while IFS= read -r line || [ -n "$line" ]; do
+            line_count=$((line_count + 1))
+            echo "Processing line $line_count: $line"
+            
+            # Parse the line format: source_lang:target_lang:source_file
+            source_lang=$(echo "$line" | cut -d: -f1)
+            target_lang=$(echo "$line" | cut -d: -f2)
+            source_file=$(echo "$line" | cut -d: -f3-)
+            
+            echo "  source_lang=$source_lang, target_lang=$target_lang, source_file=$source_file"
             
             # Derive target file path
             target_file=$(echo "$source_file" | sed "s|docs/$source_lang/|docs/$target_lang/|")
+            echo "  Derived target_file=$target_file"
             
             mkdir -p "$(dirname "$target_file")"
             
@@ -242,19 +258,22 @@ jobs:
               continue
             fi
             
-            echo "  Translating to: $target_file"
-            (cd markdown-translator && node bin/cli.js translate -i "../$source_file" -l "$target_lang" -o "../$target_file")
+            echo "  Source file found, translating..."
+            (cd markdown-translator && node bin/cli.js translate -i "../$source_file" -l "$target_lang" -o "../$target_file" 2>&1)
+            result=$?
+            echo "  Translation command exit code: $result"
             
-            if [ $? -eq 0 ]; then
+            if [ $result -eq 0 ]; then
               translation_count=$((translation_count + 1))
-              echo "  SUCCESS"
+              echo "  ✓ SUCCESS"
             else
               failed_count=$((failed_count + 1))
-              echo "  FAILED"
+              echo "  ✗ FAILED"
             fi
           done < missing_translations.txt
           
-          echo "Results: $translation_count successful, $failed_count failed"
+          echo "=== Translation complete ==="
+          echo "Results: $translation_count successful, $failed_count failed (processed $line_count lines)"
           echo "translation_count=$translation_count" >> $GITHUB_OUTPUT
           echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
           
