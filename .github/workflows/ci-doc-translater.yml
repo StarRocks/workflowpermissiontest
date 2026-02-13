@@ -84,11 +84,9 @@ jobs:
       - name: Checkout Trusted Tools
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository }}
+          repository: StarRocks/markdown-translator
           ref: main
           path: trusted_tools
-          sparse-checkout: |
-            docs/translation/
 
       - name: Get Changed Files
         id: changed-files
@@ -110,13 +108,19 @@ jobs:
             const report = comments.find(c => c.body.includes('### 🌎 Translation Required?'));
             return report ? report.body : '';
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
       - name: Run Translations
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BODY: ${{ steps.get_checks.outputs.result }}
           FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          pip install -r trusted_tools/docs/translation/requirements.txt
+          cd trusted_tools/
+          npm install
           
           for FILE in $(echo "$FILES_JSON" | sed 's/\\"/"/g' | jq -r '.[]'); do
             if [[ "$FILE" =~ ^docs/(en|zh|ja)/ ]]; then
@@ -130,7 +134,7 @@ jobs:
                 
                 if [[ "$BODY" == *"$GLOBAL_STR"* ]] || [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
                   echo "🚀 Starting translation for $FILE to $LANG"
-                  python trusted_tools/docs/translation/translate.py -l $LANG --files "pr_code/$FILE"
+                  echo "python trusted_tools/docs/translation/translate.py -l $LANG --files \"pr_code/$FILE\""
                 fi
               done
             fi
