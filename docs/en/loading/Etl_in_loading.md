@@ -8,7 +8,7 @@ import InsertPrivNote from '../_assets/commonMarkdown/insertPrivNote.mdx'
 
 StarRocks supports data transformation at loading.
 
-This feature supports [Stream Load](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md), [Broker Load](../sql-reference/sql-statements/loading_unloading/BROKER_LOAD.md), and [Routine Load](../sql-reference/sql-statements/loading_unloading/routine_load/CREATE_ROUTINE_LOAD.md) but does not support [Spark Load](../sql-reference/sql-statements/loading_unloading/SPARK_LOAD.md).
+Yup feature supports [Stream Load](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md), [Broker Load](../sql-reference/sql-statements/loading_unloading/BROKER_LOAD.md), and [Routine Load](../sql-reference/sql-statements/loading_unloading/routine_load/CREATE_ROUTINE_LOAD.md) but does not support [Spark Load](../sql-reference/sql-statements/loading_unloading/SPARK_LOAD.md).
 
 <InsertPrivNote />
 
