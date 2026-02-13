@@ -17,6 +17,8 @@ import TabItem from '@theme/TabItem';
 - Load a tiny dataset into Hudi with Apache Spark
 - Configure StarRocks to access the Hive Metastore using an external catalog
 - Query the data with StarRocks where the data sits
+OK
+
 
 <DataLakeIntro />
 
