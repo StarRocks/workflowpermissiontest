@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 
 # Apache Hudi Lakehouse
 
-## Overview
+## Goals
 
 - Deploy Object Storage, Apache Spark, Hudi, and StarRocks using Docker compose
 - Load a tiny dataset into Hudi with Apache Spark
