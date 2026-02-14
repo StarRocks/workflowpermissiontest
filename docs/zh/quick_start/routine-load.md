@@ -5,92 +5,92 @@ toc_max_heading_level: 2
 description: Kafka routine load with shared-data storage
 ---
 
-# Kafka routine load StarRocks using shared-data storage
+# 使用共享存储的 Kafka Routine Load 到 StarRocks
 
 import Clients from '../_assets/quick-start/_clientsCompose.mdx'
 import SQL from '../_assets/quick-start/_SQL.mdx'
 
-## About Routine Load
+## 关于 Routine Load
 
-Routine load uses Apache Kafka, or in this lab, Redpanda, to continuously stream data into StarRocks. The data is streamed into a Kafka topic, and a Routine Load job consumes the data into StarRocks. More details on Routine Load are provided at the end of the lab.
+Routine Load 使用 Apache Kafka，或者在本实验中使用的 Redpanda，持续将数据流式传输到 StarRocks。数据被流式传输到一个 Kafka topic 中，然后 Routine Load 任务将数据消费到 StarRocks 中。有关 Routine Load 的更多详细信息将在本实验结束时提供。
 
-## About shared-data
+## 关于 shared-data
 
-In systems that separate storage from compute, data is stored in low-cost reliable remote storage systems such as Amazon S3, Google Cloud Storage, Azure Blob Storage, and other S3-compatible storage like MinIO. Hot data is cached locally and when the cache is hit, the query performance is comparable to that of storage-compute coupled architecture. Compute nodes (CN) can be added or removed on demand within seconds. This architecture reduces storage costs, ensures better resource isolation, and provides elasticity and scalability.
+在存储与计算分离的系统中，数据存储在低成本、可靠的远程存储系统（如 Amazon S3、Google Cloud Storage、Azure Blob Storage 和其他 S3 兼容存储，如 MinIO）中。热数据在本地缓存，当缓存命中时，查询性能与存储计算耦合架构相当。计算节点 (CN) 可以按需在几秒钟内添加或移除。这种架构降低了存储成本，确保了更好的资源隔离，并提供了弹性和可伸缩性。
 
-This tutorial covers:
+本教程涵盖：
 
-- Running StarRocks, Redpanda, and MinIO with Docker Compose
-- Using MinIO as the StarRocks storage layer
-- Configuring StarRocks for shared-data
-- Adding a Routine Load job to consume data from Redpanda
+- 使用 Docker Compose 运行 StarRocks、Redpanda 和 MinIO
+- 使用 MinIO 作为 StarRocks 存储层
+- 配置 StarRocks 以使用 shared-data
+- 添加 Routine Load 任务以从 Redpanda 消费数据
 
-The data used is synthetic.
+使用的数据是合成数据。
 
-There is a lot of information in this document, and it is presented with step-by-step content at the beginning, and the technical details at the end. This is done to serve these purposes in this order:
+本文档包含大量信息，开头部分提供了分步内容，技术细节则放在了文档末尾。这样做是为了按以下顺序实现这些目的：
 
-1. Configure Routine Load.
-2. Allow the reader to load data in a shared-data deployment and analyze that data.
-3. Provide the configuration details for shared-data deployments.
+1. 配置 Routine Load。
+2. 让读者能够在 shared-data 部署中加载数据并分析这些数据。
+3. 提供 shared-data 部署的配置详情。
 
 ---
 
-## Prerequisites
+## 前提条件
 
 ### Docker
 
 - [Docker](https://docs.docker.com/engine/install/)
-- 4 GB RAM assigned to Docker
-- 10 GB free disk space assigned to Docker
+- 分配给 Docker 4 GB RAM
+- 分配给 Docker 10 GB 的可用磁盘空间
 
-### SQL client
+### SQL 客户端
 
-You can use the SQL client provided in the Docker environment, or use one on your system. Many MySQL-compatible clients will work, and this guide covers the configuration of DBeaver and MySQL Workbench.
+您可以使用 Docker 环境中提供的 SQL 客户端，也可以使用系统上的客户端。许多 MySQL 兼容的客户端都适用，本指南涵盖了 DBeaver 和 MySQL Workbench 的配置。
 
 ### curl
 
-`curl` is used to download the Compose file and the script to generate the data. Check to see if you have it installed by running `curl` or `curl.exe` at your OS prompt. If curl is not installed, [get curl here](https://curl.se/dlwiz/?type=bin).
+`curl` 用于下载 Compose 文件和生成数据的脚本。通过在操作系统提示符下运行 `curl` 或 `curl.exe` 来检查是否已安装。如果 `curl` 未安装，[请在此处获取 curl](https://curl.se/dlwiz/?type=bin)。
 
 ### Python
 
-Python 3 and the Python client for Apache Kafka, `kafka-python`, are required.
+需要 Python 3 和 Apache Kafka 的 Python 客户端 `kafka-python`。
 
 - [Python](https://www.python.org/)
 - [`kafka-python`](https://pypi.org/project/kafka-python/)
 
 ---
 
-## Terminology
+## 术语
 
 ### FE
 
-Frontend nodes are responsible for metadata management, client connection management, query planning, and query scheduling. Each FE stores and maintains a complete copy of metadata in its memory, which guarantees indiscriminate services among the FEs.
+Frontend 节点负责元数据管理、客户端连接管理、查询规划和查询调度。每个 FE 在其内存中存储和维护一份完整的元数据副本，这保证了 FE 之间服务的无差别性。
 
 ### CN
 
-Compute Nodes are responsible for executing query plans in shared-data deployments.
+Compute 节点在 shared-data 部署中负责执行查询计划。
 
 ### BE
 
-Backend nodes are responsible for both data storage and executing query plans in shared-nothing deployments.
+Backend 节点在 shared-nothing 部署中负责数据存储和执行查询计划。
 
 :::note
-This guide does not use BEs, this information is included here so that you understand the difference between BEs and CNs.
+本指南不使用 BE，此信息包含在此处，以便您了解 BE 和 CN 之间的区别。
 :::
 
 ---
 
-## Launch StarRocks
+## 启动 StarRocks
 
-To run StarRocks with shared-data using Object Storage you need:
+要使用对象存储运行带有 shared-data 的 StarRocks，您需要：
 
-- A frontend engine (FE)
-- A compute node (CN)
-- Object Storage
+- 一个 Frontend Engine (FE)
+- 一个 Compute Node (CN)
+- 对象存储
 
-This guide uses MinIO, which is S3 compatible Object Storage provider. MinIO is provided under the GNU Affero General Public License.
+本指南使用 MinIO，它是一个 S3 兼容的对象存储提供商。MinIO 是根据 GNU Affero General Public License 提供的。
 
-### Download the lab files
+### 下载实验文件
 
 #### `docker-compose.yml`
 
@@ -102,21 +102,21 @@ curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-sa
 
 #### `gen.py`
 
-`gen.py` is a script that uses the Python client for Apache Kafka to publish (produce) data to a Kafka topic. The script has been written with the address and port of the Redpanda container.
+`gen.py` 是一个使用 Apache Kafka 的 Python 客户端将数据发布（生产）到 Kafka topic 的脚本。该脚本已用 Redpanda 容器的地址和端口编写。
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/routine-load-shared-data/gen.py
 ```
 
-## Start StarRocks, MinIO, and Redpanda
+## 启动 StarRocks、MinIO 和 Redpanda
 
 ```bash
 docker compose up --detach --wait --wait-timeout 120
 ```
 
-Check the progress of the services. It should take 30 seconds or more for the containers to become healthy. The `routineload-minio_mc-1` container will not show a health indicator, and it will exit once it is done configuring MinIO with the access key that StarRocks will use. Wait for `routineload-minio_mc-1` to exit with a `0` code and the rest of the services to be `Healthy`.
+检查服务的进度。容器需要 30 秒或更长时间才能变得健康。`routineload-minio_mc-1` 容器不会显示健康指示器，它会在完成用 StarRocks 将使用的访问密钥配置 MinIO 后退出。等待 `routineload-minio_mc-1` 以 `0` 代码退出，并且其余服务为 `Healthy`。
 
-Run `docker compose ps` until the services are healthy:
+运行 `docker compose ps` 直到服务健康：
 
 ```bash
 docker compose ps
@@ -137,41 +137,41 @@ container routineload-minio_mc-1 exited (0)
 
 ---
 
-## Examine MinIO credentials
+## 检查 MinIO 凭据
 
-In order to use MinIO for Object Storage with StarRocks, StarRocks needs a MinIO access key. The access key was generated during the startup of the Docker services. To help you better understand the way that StarRocks connects to MinIO you should verify that the key exists.
+为了将 MinIO 用作 StarRocks 的对象存储，StarRocks 需要一个 MinIO 访问密钥。访问密钥是在 Docker 服务启动期间生成的。为了帮助您更好地理解 StarRocks 连接 MinIO 的方式，您应该验证密钥是否存在。
 
-### Open the MinIO web UI
+### 打开 MinIO Web UI
 
-Browse to http://localhost:9001/access-keys The username and password are specified in the Docker compose file, and are `miniouser` and `miniopassword`. You should see that there is one access key. The Key is `AAAAAAAAAAAAAAAAAAAA`, you cannot see the secret in the MinIO Console, but it is in the Docker compose file and is `BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB`:
+浏览至 http://localhost:9001/access-keys 用户名和密码在 Docker compose 文件中指定，分别为 `miniouser` 和 `miniopassword`。您应该会看到有一个访问密钥。密钥是 `AAAAAAAAAAAAAAAAAAAA`，您无法在 MinIO 控制台中看到 secret，但它在 Docker compose 文件中是 `BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB`：
 
-![View the MinIO access key](../_assets/quick-start/MinIO-view-key.png)
+![查看 MinIO 访问密钥](../_assets/quick-start/MinIO-view-key.png)
 
 ---
 
-### Create a bucket for your data
+### 为您的数据创建一个 bucket
 
-When you create a storage volume in StarRocks you will specify the `LOCATION` for the data:
+当您在 StarRocks 中创建存储卷时，您将指定数据的 `LOCATION`：
 
 ```sh
     LOCATIONS = ("s3://my-starrocks-bucket/")
 ```
 
-Open [http://localhost:9001/buckets](http://localhost:9001/buckets) and add a bucket for the storage volume. Name the bucket `my-starrocks-bucket`. Accept the defaults for the three listed options.
+打开 [http://localhost:9001/buckets](http://localhost:9001/buckets) 并为存储卷添加一个 bucket。将 bucket 命名为 `my-starrocks-bucket`。接受列出的三个选项的默认值。
 
 ---
 
-## SQL Clients
+## SQL 客户端
 
 <Clients />
 
 ---
 
-## StarRocks configuration for shared-data
+## StarRocks shared-data 配置
 
-At this point you have StarRocks running, and you have MinIO running. The MinIO access key is used to connect StarRocks and Minio.
+此时，您已运行 StarRocks 和 MinIO。MinIO 访问密钥用于连接 StarRocks 和 MinIO。
 
-This is the part of the `FE` configuration that specifies that the StarRocks deployment will use shared data. This was added to the file `fe.conf` when Docker Compose created the deployment.
+这是 `FE` 配置的一部分，它指定 StarRocks 部署将使用共享数据。这是 Docker Compose 创建部署时添加到文件 `fe.conf` 的。
 
 ```sh
 # enable the shared data run mode
@@ -180,7 +180,7 @@ cloud_native_storage_type = S3
 ```
 
 :::info
-You can verify these settings by running this command from the `quickstart` directory and looking at the end of the file: 
+您可以通过从 `quickstart` 目录运行此命令并查看文件末尾来验证这些设置：
 :::
 
 ```sh
@@ -189,13 +189,13 @@ docker compose exec starrocks-fe \
 ```
 :::
 
-### Connect to StarRocks with a SQL client
+### 使用 SQL 客户端连接到 StarRocks
 
 :::tip
 
-Run this command from the directory containing the `docker-compose.yml` file.
+从包含 `docker-compose.yml` 文件的目录运行此命令。
 
-If you are using a client other than the mysql CLI, open that now.
+如果您使用的客户端不是 mysql CLI，请立即打开。
 :::
 
 ```sql
@@ -203,24 +203,23 @@ docker compose exec starrocks-fe \
 mysql -P9030 -h127.0.0.1 -uroot --prompt="StarRocks > "
 ```
 
-#### Examine the storage volumes
-
+#### 检查存储卷
 
 ```sql
 SHOW STORAGE VOLUMES;
 ```
 
 :::tip
-There should be no storage volumes, you will create one next.
+不应该有存储卷，您接下来将创建一个。
 :::
 
 ```sh
 Empty set (0.04 sec)
 ```
 
-#### Create a shared-data storage volume
+#### 创建 shared-data 存储卷
 
-Earlier you created a bucket in MinIO named `my-starrocks-volume`, and you verified that MinIO has an access key named `AAAAAAAAAAAAAAAAAAAA`. The following SQL will create a storage volume in the MionIO bucket using the access key and secret.
+早些时候，您在 MinIO 中创建了一个名为 `my-starrocks-volume` 的 bucket，并验证了 MinIO 有一个名为 `AAAAAAAAAAAAAAAAAAAA` 的访问密钥。以下 SQL 将使用访问密钥和 secret 在 MinIO bucket 中创建一个存储卷。
 
 ```sql
 CREATE STORAGE VOLUME s3_volume
@@ -237,7 +236,7 @@ CREATE STORAGE VOLUME s3_volume
      );
 ```
 
-Now you should see a storage volume listed, earlier it was an empty set:
+现在您应该看到列出了一个存储卷，之前它是空集：
 
 ```
 SHOW STORAGE VOLUMES;
@@ -252,17 +251,16 @@ SHOW STORAGE VOLUMES;
 1 row in set (0.02 sec)
 ```
 
-View the details of the storage volume and note that this is nott yet the default volume, and that it is configured to use your bucket:
+查看存储卷的详细信息，并注意它尚未成为默认卷，并且已配置为使用您的 bucket：
 
 ```
 DESC STORAGE VOLUME s3_volume\G
 ```
 
 :::tip
-Some of the SQL in this document, and many other documents in the StarRocks documentation, and with `\G` instead
-of a semicolon. The `\G` causes the mysql CLI to render the query results vertically.
+本文档中的某些 SQL 以及 StarRocks 文档中的许多其他文档都以 `\G` 结尾而不是分号。`\G` 会导致 mysql CLI 垂直渲染查询结果。
 
-Many SQL clients do not interpret vertical formatting output, so you should replace `\G` with `;`.
+许多 SQL 客户端不解释垂直格式输出，因此您应该将 `\G` 替换为 `;`。
 :::
 
 ```sh
@@ -279,7 +277,7 @@ IsDefault: false
 1 row in set (0.02 sec)
 ```
 
-## Set the default storage volume
+## 设置默认存储卷
 
 ```
 SET s3_volume AS DEFAULT STORAGE VOLUME;
@@ -304,15 +302,15 @@ IsDefault: true
 
 ---
 
-## Create a table
+## 创建表
 
-These SQL commands are run in your SQL client.
+这些 SQL 命令在您的 SQL 客户端中运行。
 
 ```SQL
 CREATE DATABASE IF NOT EXISTS quickstart;
 ```
 
-Verify that the database `quickstart` is using the storage volume `s3_volume`:
+验证数据库 `quickstart` 是否正在使用存储卷 `s3_volume`：
 
 ```
 SHOW CREATE DATABASE quickstart \G
@@ -342,15 +340,15 @@ PROPERTIES("replication_num"="1");
 
 ---
 
-### Open the Redpanda Console
+### 打开 Redpanda 控制台
 
-There will be no topics yet, a topic will be created in the next step.
+目前还没有 topic，下一步将创建一个 topic。
 
 http://localhost:8080/overview
 
-### Publish data to a Redpanda topic
+### 发布数据到 Redpanda topic
 
-From a command shell in the `routineload/` folder run this command to generate data:
+从 `routineload/` 文件夹中的命令行 shell 运行此命令以生成数据：
 
 ```python
 python gen.py 5
@@ -358,14 +356,14 @@ python gen.py 5
 
 :::tip
 
-On your system, you might need to use `python3` in place of `python` in the command.
+在您的系统上，您可能需要将命令中的 `python` 替换为 `python3`。
 
-If you are missing `kafka-python` try:
+如果您缺少 `kafka-python`，请尝试：
 
 ```
 pip install kafka-python
 ```
- or
+ 或
 
 ```
 pip3 install kafka-python
@@ -381,22 +379,22 @@ b'{ "uid": 7273, "site": "https://docs.starrocks.io/", "vtime": 1718034794 } '
 b'{ "uid": 4666, "site": "https://www.starrocks.io/", "vtime": 1718034794 } '
 ```
 
-### Verify in the Redpanda Console
+### 在 Redpanda 控制台中验证
 
-Navigate to http://localhost:8080/topics in the Redpanda Console, and you will see one topic named `test2`. Select that topic and then the **Messages** tab and you will see five messages matching the output of `gen.py`.
+导航到 Redpanda 控制台中的 http://localhost:8080/topics，您将看到一个名为 `test2` 的 topic。选择该 topic，然后选择 **Messages** 选项卡，您将看到与 `gen.py` 输出匹配的五条消息。
 
-## Consume the messages
+## 消费消息
 
-In StarRocks you will create a Routine Load job to:
+在 StarRocks 中，您将创建一个 Routine Load 任务来：
 
-1. Consume the messages from the Redpanda topic `test2`
-2. Load those messages into the table `site_clicks`
+1. 消费 Redpanda topic `test2` 中的消息
+2. 将这些消息加载到表 `site_clicks` 中
 
-StarRocks is configured to use MinIO for storage, so the data inserted into the `site_clicks` table will be stored in MinIO.
+StarRocks 已配置为使用 MinIO 进行存储，因此插入到 `site_clicks` 表中的数据将存储在 MinIO 中。
 
-### Create a Routine Load job
+### 创建 Routine Load 任务
 
-Run this command in the SQL client to create the Routine Load job, the command will be explained in detail at the end of the lab.
+在 SQL 客户端中运行此命令以创建 Routine Load 任务，该命令将在实验结束时详细解释。
 
 ```SQL
 CREATE ROUTINE LOAD quickstart.clicks ON site_clicks
@@ -414,17 +412,17 @@ FROM KAFKA
 );
 ```
 
-### Verify the Routine Load job
+### 验证 Routine Load 任务
 
 ```SQL
 SHOW ROUTINE LOAD\G
 ```
 
-Verify the three highlighted lines:
+验证三条高亮行：
 
-1. The state should be `RUNNING`
-2. The topic should be `test2` and the broker should be `redpanda:2092`
-3. The statistics should show either 0 or 5 loaded rows depending on how soon you ran the `SHOW ROUTINE LOAD` command. If there are 0 loaded rows run it again.
+1. 状态应为 `RUNNING`
+2. topic 应为 `test2`，broker 应为 `redpanda:2092`
+3. 统计信息应显示 0 或 5 行已加载行，具体取决于您运行 `SHOW ROUTINE LOAD` 命令的时间。如果已加载行为 0，请再次运行。
 
 ```SQL
 *************************** 1. row ***************************
@@ -489,13 +487,13 @@ LatestSourcePosition: {"0":"5"}
 
 ---
 
-## Verify that data is stored in MinIO
+## 验证数据存储在 MinIO 中
 
-Open MinIO [http://localhost:9001/browser/](http://localhost:9001/browser/) and verify that there are objects stored under `my-starrocks-bucket`.
+打开 MinIO [http://localhost:9001/browser/](http://localhost:9001/browser/) 并验证 `my-starrocks-bucket` 下是否存在存储对象。
 
 ---
 
-## Query the data from StarRocks
+## 从 StarRocks 查询数据
 
 ```SQL
 USE quickstart;
@@ -515,17 +513,17 @@ SELECT * FROM site_clicks;
 5 rows in set (0.07 sec)
 ```
 
-## Publish additional data
+## 发布额外数据
 
-Running `gen.py` again will publish another five records to Redpanda.
+再次运行 `gen.py` 将向 Redpanda 发布另外五条记录。
 
 ```bash
 python gen.py 5
 ```
 
-### Verify that data is added
+### 验证数据是否已添加
 
-Since the Routine Load job runs on a schedule (every 10 seconds by default), the data will be loaded within a few seconds.
+由于 Routine Load 任务按计划运行（默认每 10 秒），数据将在几秒钟内加载。
 
 ```SQL
 SELECT * FROM site_clicks;
@@ -551,13 +549,13 @@ SELECT * FROM site_clicks;
 
 ---
 
-## Configuration details
+## 配置详情
 
-Now that you have experienced using StarRocks with shared-data it is important to understand the configuration. 
+现在您已经体验了使用 StarRocks 和 shared-data，了解其配置非常重要。
 
-### CN configuration
+### CN 配置
 
-The CN configuration used here is the default, as the CN is designed for shared-data use. The default configuration is shown below. You do not need to make any changes.
+这里使用的 CN 配置是默认配置，因为 CN 专为 shared-data 使用而设计。默认配置如下所示。您无需进行任何更改。
 
 ```bash
 sys_log_level = INFO
@@ -570,11 +568,11 @@ brpc_port = 8060
 starlet_port = 9070
 ```
 
-### FE configuration
+### FE 配置
 
-The FE configuration is slightly different from the default as the FE must be configured to expect that data is stored in Object Storage rather than on local disks on BE nodes.
+FE 配置与默认配置略有不同，因为 FE 必须配置为预期数据存储在对象存储中，而不是 BE 节点上的本地磁盘中。
 
-The `docker-compose.yml` file generates the FE configuration in the `command`.
+`docker-compose.yml` 文件在 `command` 中生成 FE 配置。
 
 ```plaintext
 # enable shared data, set storage type, set endpoint
@@ -583,24 +581,24 @@ cloud_native_storage_type = S3
 ```
 
 :::note
-This config file does not contain the default entries for an FE, only the shared-data configuration is shown.
+此配置文件不包含 FE 的默认条目，仅显示 shared-data 配置。
 :::
 
-The non-default FE configuration settings:
+非默认 FE 配置设置：
 
 :::note
-Many configuration parameters are prefixed with `s3_`. This prefix is used for all Amazon S3 compatible storage types (for example: S3, GCS, and MinIO). When using Azure Blob Storage the prefix is `azure_`.
+许多配置参数都带有 `s3_` 前缀。此`s3_`前缀用于所有 Amazon S3 兼容存储类型（例如：S3、GCS 和 MinIO）。当使用 Azure Blob Storage 时，前缀是 `azure_`。
 :::
 
 #### `run_mode=shared_data`
 
-This enables shared-data use.
+这将启用 shared-data 的使用。
 
 #### `cloud_native_storage_type=S3`
 
-This specifies whether S3 compatible storage or Azure Blob Storage is used. For MinIO this is always S3.
+这指定了是使用 S3 兼容存储还是 Azure Blob Storage。对于 MinIO，始终是 S3。
 
-### Details of `CREATE storage volume`
+### `CREATE storage volume` 详情
 
 ```sql
 CREATE STORAGE VOLUME s3_volume
@@ -619,33 +617,33 @@ CREATE STORAGE VOLUME s3_volume
 
 #### `aws_s3_endpoint=minio:9000`
 
-The MinIO endpoint, including port number.
+MinIO 端点，包括端口号。
 
 #### `aws_s3_path=starrocks`
 
-The bucket name.
+bucket 名称。
 
 #### `aws_s3_access_key=AAAAAAAAAAAAAAAAAAAA`
 
-The MinIO access key.
+MinIO 访问密钥。
 
 #### `aws_s3_secret_key=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB`
 
-The MinIO access key secret.
+MinIO 访问密钥 secret。
 
 #### `aws_s3_use_instance_profile=false`
 
-When using MinIO an access key is used, and so instance profiles are not used with MinIO.
+使用 MinIO 时，使用访问密钥，因此不与 MinIO 一起使用实例配置文件。
 
 #### `aws_s3_use_aws_sdk_default_behavior=false`
 
-When using MinIO this parameter is always set to false.
+使用 MinIO 时，此参数始终设置为 false。
 
 ---
 
-## Notes on the Routine Load command
+## 关于 Routine Load 命令的说明
 
-StarRocks Routine Load takes many arguments. Only the ones used in this tutorial are described here, the rest will be linked to in the more information section.
+StarRocks Routine Load 有许多参数。本教程中只描述了使用的参数，其余的将在更多信息部分中链接。
 
 ```SQL
 CREATE ROUTINE LOAD quickstart.clicks ON site_clicks
@@ -663,42 +661,41 @@ FROM KAFKA
 );
 ```
 
-### Parameters
+### 参数
 
 ```
 CREATE ROUTINE LOAD quickstart.clicks ON site_clicks
 ```
 
-The parameters for `CREATE ROUTINE LOAD ON` are:
+`CREATE ROUTINE LOAD ON` 的参数是：
 - database_name.job_name
 - table_name
 
-`database_name` is optional. In this lab, it is `quickstart` and is specified.
+`database_name` 是可选的。在本实验中，它是 `quickstart` 并已指定。
 
-`job_name` is required, and is `clicks`
+`job_name` 是必需的，是 `clicks`
 
-`table_name` is required, and is `site_clicks`
+`table_name` 是必需的，是 `site_clicks`
 
-### Job properties
+### 任务属性
 
-#### Property `format`
+#### 属性 `format`
 
 ```
 "format" = "JSON",
 ```
 
-In this case, the data is in JSON format, so the property is set to `JSON`. The other valid formats are: `CSV`, `JSON`, and `Avro`. `CSV` is the default.
+在这种情况下，数据是 JSON 格式，因此属性设置为 `JSON`。其他有效格式是：`CSV`、`JSON` 和 `Avro`。`CSV` 是默认值。
 
-#### Property `jsonpaths`
+#### 属性 `jsonpaths`
 
 ```
 "jsonpaths" ="[\"$.uid\",\"$.site\",\"$.vtime\"]"
 ```
 
-The names of the fields that you want to load from JSON-formatted data. The value of this parameter is a valid JsonPath expression. More information is available at the end of this page.
+您想要从 JSON 格式数据中加载的字段名称。此参数的值是有效的 JsonPath 表达式。更多信息可在本页末尾获取。
 
-
-### Data source properties
+### 数据源属性
 
 #### `kafka_broker_list`
 
@@ -706,7 +703,7 @@ The names of the fields that you want to load from JSON-formatted data. The valu
 "kafka_broker_list" = "redpanda:29092",
 ```
 
-Kafka's broker connection information. The format is `<kafka_broker_name_or_ip>:<broker_ port>`. Multiple brokers are separated by commas.
+Kafka 的 broker 连接信息。格式为 `<kafka_broker_name_or_ip>:<broker_ port>`。多个 broker 用逗号分隔。
 
 #### `kafka_topic`
 
@@ -714,35 +711,35 @@ Kafka's broker connection information. The format is `<kafka_broker_name_or_ip>:
 "kafka_topic" = "test2",
 ```
 
-The Kafka topic to consume from.
+要从中消费的 Kafka topic。
 
-#### `kafka_partitions` and `kafka_offsets`
+#### `kafka_partitions` 和 `kafka_offsets`
 
 ```
 "kafka_partitions" = "0",
 "kafka_offsets" = "OFFSET_BEGINNING"
 ```
 
-These properties are presented together as there is one `kafka_offset` required for each `kafka_partitions` entry. 
+这些属性一起呈现，因为每个 `kafka_partitions` 条目都需要一个 `kafka_offset`。
 
-`kafka_partitions` is a list of one or more partitions to consume. If this property is not set, then all partitions are consumed.
+`kafka_partitions` 是要消费的一个或多个分区的列表。如果未设置此属性，则消费所有分区。
 
-`kafka_offsets` is a list of offsets, one for each partition listed in `kafka_partitions`. In this case the value is `OFFSET_BEGINNING` which causes all of the data to be consumed. The default is to only consume new data.
+`kafka_offsets` 是偏移量的列表，`kafka_partitions` 中列出的每个分区对应一个偏移量。在这种情况下，值是 `OFFSET_BEGINNING`，这将导致消费所有数据。默认只消费新数据。
 
 ---
 
-## Summary
+## 总结
 
-In this tutorial you:
+在本教程中，您：
 
-- Deployed StarRocks, Reedpanda, and Minio in Docker
-- Created a Routine Load job to consume data from a Kafka topic
-- Learned how to configure a StarRocks Storage Volume that uses MinIO
+- 在 Docker 中部署了 StarRocks、Redpanda 和 MinIO
+- 创建了一个 Routine Load 任务以从 Kafka topic 消费数据
+- 学习了如何配置使用 MinIO 的 StarRocks 存储卷
 
-## More information
+## 更多信息
 
 [StarRocks Architecture](../introduction/Architecture.md)
 
-The sample used for this lab is very simple. Routine Load has many more options and capabilities. [learn more](../loading/RoutineLoad.md).
+本实验使用的示例非常简单。Routine Load 还有更多选项和功能。 [了解更多](../loading/RoutineLoad.md)。
 
 [JSONPath](https://goessner.net/articles/JsonPath/)
