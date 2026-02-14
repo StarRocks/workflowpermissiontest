@@ -1,10 +1,9 @@
----
+```md
 displayed_sidebar: docs
 sidebar_position: 3
-description: Data Lakehouse with Apache Iceberg
+description: Apache Iceberg を使用したデータレイクハウス
 toc_max_heading_level: 2
 keywords: [ 'iceberg' ]
----
 
 import DataLakeIntro from '../_assets/commonMarkdown/datalakeIntro.mdx'
 import Clients from '../_assets/quick-start/_clientsCompose.mdx'
@@ -13,16 +12,13 @@ import Clients from '../_assets/quick-start/_clientsCompose.mdx'
 
 ice ice baby
 
-This guide will get you up and running with Apache Iceberg™ using StarRocks™, including sample code to highlight some
-powerful features.
+このガイドでは、StarRocks™ を使用して Apache Iceberg™ をセットアップし、強力な機能を紹介するサンプルコードを含め、すぐに利用できるようにします。
 
 ### Docker-Compose
 
-The fastest way to get started is to use a docker-compose file that uses the `starrocks/fe-ubuntu` and `starrocks/be-ubuntu`
-images which contain a local StarRocks cluster with a configured Iceberg catalog. To use this, you'll need to install
-the Docker CLI.
+最も早く開始する方法は、`starrocks/fe-ubuntu` と `starrocks/be-ubuntu` イメージを使用する docker-compose ファイルを利用することです。これらのイメージには、Iceberg catalog が構成されたローカルの StarRocks クラスターが含まれています。これを使用するには、Docker CLI をインストールする必要があります。
 
-Once you have Docker installed, save the yaml below into a file named docker-compose.yml:
+Docker をインストールしたら、以下の yaml を `docker-compose.yml` という名前のファイルに保存します。
 
 ```yml
 services:
@@ -137,20 +133,20 @@ networks:
   iceberg_net:
 ```
 
-Next, start up the docker containers with this command:
+次に、このコマンドで Docker コンテナを起動します。
 
 ```Plain
 docker compose up --detach --wait --wait-timeout 400
 ```
 
-You can then run any of the following commands to start a StarRocks session.
+その後、以下のいずれかのコマンドを実行して StarRocks セッションを開始できます。
 
 ```bash
 docker exec -it starrocks-fe \
 mysql -P 9030 -h 127.0.0.1 -u root --prompt="StarRocks > "
 ```
 
-### Adding and Using a Catalog
+### catalog の追加と使用
 
 ```SQL
 CREATE EXTERNAL CATALOG 'demo'
@@ -188,7 +184,7 @@ Comment: External catalog to Apache Iceberg on MinIO
 SET CATALOG demo;
 ```
 
-### Creating and using a database
+### データベースの作成と使用
 
 ```SQL
 CREATE DATABASE nyc;
@@ -198,7 +194,7 @@ CREATE DATABASE nyc;
 USE nyc;
 ```
 
-### Creating a table
+### テーブルの作成
 
 ```SQL
 CREATE TABLE demo.nyc.taxis
@@ -211,7 +207,7 @@ CREATE TABLE demo.nyc.taxis
 ) PARTITION BY (vendor_id);
 ```
 
-### Writing Data to a Table
+### テーブルへのデータ書き込み
 
 ```SQL
 INSERT INTO demo.nyc.taxis
@@ -221,34 +217,31 @@ VALUES (1000371, 1.8, 15.32, 'N', 1),
        (1000374, 8.4, 42.13, 'Y', 1);
 ```
 
-### Reading Data from a Table
+### テーブルからのデータ読み取り
 
 ```SQL
 SELECT *
 FROM demo.nyc.taxis;
 ```
 
-### Verify that the data is stored in object storage
+### データがオブジェクトストレージに保存されていることを確認する
 
-When you added and used the external catalog, Starrocks started using MinIO as the object store for the `demo.nyc.taxis`
-table. If you navigate to http://localhost:9001 and then navigate through the Object Browser menu to
-`warehouse/nyc/taxis/` you can confirm that StarRocks is using MinIO for the storage.
+external catalog を追加して使用すると、StarRocks は `demo.nyc.taxis` テーブルのオブジェクトストアとして MinIO の使用を開始します。`http://localhost:9001` に移動し、Object Browser メニューから `warehouse/nyc/taxis/` に移動すると、StarRocks がストレージに MinIO を使用していることを確認できます。
 
 :::tip
 
-The username and password for MinIO are in the docker-compose.yml file. You will be prompted to change the password to something better, just ignore this advice for the tutorial.
+MinIO のユーザー名とパスワードは `docker-compose.yml` ファイルに記載されています。より良いパスワードに変更するよう求められますが、このチュートリアルではこのアドバイスを無視してください。
 
 ![img](../_assets/quick-start/MinIO-Iceberg-data.png)
 :::
 
-### Next Steps
+### 次のステップ
 
-#### Adding Iceberg to StarRocks
+#### StarRocks への Iceberg の追加
 
-If you already have a StarRocks 3.2.0, or later, environment, it comes with the Iceberg 1.6.0 included. No additional
-downloads or jars are needed.
+StarRocks 3.2.0 以降の環境が既にある場合は、Iceberg 1.6.0 が含まれています。追加のダウンロードや jar ファイルは必要ありません。
 
-#### Learn More
+#### 詳細
 
-Now that you're up and running with Iceberg and StarRocks, check out
-the [StarRocks-Iceberg docs](../data_source/catalog/iceberg/iceberg_catalog.md) to learn more!
+Iceberg と StarRocks を使用する準備が整いました。詳細については、 [StarRocks-Iceberg ドキュメント](../data_source/catalog/iceberg/iceberg_catalog.md) を参照してください。
+```
