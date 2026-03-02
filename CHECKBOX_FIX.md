@@ -1,5 +1,7 @@
 # Translation Checkbox Selection Fix
 
+test
+
 ## Problem
 
 The `/translate` command was generating translations for ALL missing files instead of only those with checked boxes. 
