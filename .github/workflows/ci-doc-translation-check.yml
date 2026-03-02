@@ -1,12 +1,6 @@
 name: Translation Status Check
 on:
   pull_request_target:
-    types:
-      - opened
-      - synchronize
-    branches:
-      - main
-      - 'branch*'
   workflow_run:
     workflows: ["Translation Runner"]
     types: [completed]
