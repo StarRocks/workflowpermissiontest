@@ -3,7 +3,6 @@ on:
   workflow_run:
     workflows: 
       - "CI DOC Checker"
-      - "Translation Runner"
     types: [completed]
 
 jobs:
