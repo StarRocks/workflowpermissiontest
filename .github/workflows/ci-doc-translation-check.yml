@@ -9,13 +9,43 @@ on:
 jobs:
   report:
     runs-on: ubuntu-latest
-    # Only run if the triggering workflow succeeded (prevents running on failed linting)
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       pull-requests: write 
       contents: read       
+      actions: read # Required to read the job status of the triggering workflow
     steps:
+      - name: Verify Linting Passed
+        id: check_lint
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            // If triggered by the Translation Runner, we can always proceed
+            if (context.payload.workflow_run.name === 'Translation Runner') {
+              return 'true';
+            }
+            
+            // Query the jobs of the CI DOC Checker run
+            const { data: jobsData } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            
+            // Look for the exact name of your linting job
+            const lintJob = jobsData.jobs.find(j => j.name === 'markdownlint');
+            
+            // If the lint job doesn't exist or didn't succeed, we cancel.
+            if (!lintJob || lintJob.conclusion !== 'success') {
+              console.log("Markdownlint failed or was skipped. Canceled translation check.");
+              return 'false';
+            }
+            
+            console.log("Markdownlint succeeded! Proceeding with translation check.");
+            return 'true';
+
       - name: Get PR Number
+        if: steps.check_lint.outputs.result == 'true'
         id: pr_number
         uses: actions/github-script@v7
         with:
@@ -34,8 +64,8 @@ jobs:
             }
             core.setOutput('pr_number', pullRequests[0].number);
 
-      # MOVED UP: Find existing comment first so we know if we should stay silent
       - name: Find Existing Comment
+        if: steps.check_lint.outputs.result == 'true'
         uses: peter-evans/find-comment@v3
         id: findcomment
         with:
@@ -44,12 +74,14 @@ jobs:
           body-includes: "### 🌎 Translation Required?"
 
       - name: Checkout PR Code
+        if: steps.check_lint.outputs.result == 'true'
         uses: actions/checkout@v4
         with:
           ref: refs/pull/${{ steps.pr_number.outputs.pr_number }}/merge
           fetch-depth: 0
 
       - name: Get PR Details
+        if: steps.check_lint.outputs.result == 'true'
         id: pr_details
         uses: actions/github-script@v7
         with:
@@ -63,6 +95,7 @@ jobs:
             core.setOutput('base_sha', pr.base.sha);
 
       - name: Get Changed Files
+        if: steps.check_lint.outputs.result == 'true'
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
@@ -74,6 +107,7 @@ jobs:
             docs/ja/**/*.md*
 
       - name: Generate Checklist Body
+        if: steps.check_lint.outputs.result == 'true'
         id: checklist
         uses: actions/github-script@v7
         env:
@@ -91,7 +125,7 @@ jobs:
 
             // 1. SILENT ABORT: No doc changes and no prior comment? Stay completely quiet.
             if (files.length === 0 && !hasComment) {
-              console.log("No translatable files and no prior comment. Skipping all actions.");
+              console.log("No translatable files and no prior comment. Cancelled all actions.");
               core.setOutput('skip_commenting', 'true');
               core.setOutput('needs_translation', 'false');
               return;
@@ -213,8 +247,7 @@ jobs:
             core.setOutput('body', body);
 
       - name: Create or update comment
-        # Only run if we actually have doc changes OR we need to update a previous comment
-        if: steps.checklist.outputs.skip_commenting != 'true'
+        if: steps.check_lint.outputs.result == 'true' && steps.checklist.outputs.skip_commenting != 'true'
         uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ steps.findcomment.outputs.comment-id }}
@@ -223,7 +256,7 @@ jobs:
           edit-mode: replace
 
       - name: Label PR
-        if: steps.checklist.outputs.needs_translation == 'true'
+        if: steps.check_lint.outputs.result == 'true' && steps.checklist.outputs.needs_translation == 'true'
         uses: actions/github-script@v7
         with:
           script: |
