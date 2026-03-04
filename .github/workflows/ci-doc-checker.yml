@@ -118,8 +118,12 @@ jobs:
           globs: ${{ steps.changed-files.outputs.all_changed_files }}
           separator: ","
 
+  docusaurus-build:
+    runs-on: ubuntu-latest
+    needs: markdownlint # Only runs if markdownlint passes!
+    steps:
+
       - name: docusaurus-mdx-checker
-        if: always()
         run: |
           npx docusaurus-mdx-checker -c docs
 
@@ -131,11 +135,6 @@ jobs:
           args: >
             --config docs/lychee.toml
             --offline "docs/**/*.md"
-
-  docusaurus-build:
-    runs-on: ubuntu-latest
-    needs: markdownlint # Only runs if markdownlint passes!
-    steps:
       - name: Docusaurus build
         env:
           NODE_OPTIONS: --max-old-space-size=8192
