@@ -23,7 +23,7 @@ key_column_expr ::= <column_name> | <expr>
 ## Parameters
 
 - Required parameters:
-  - `[<db_name>.]<dict_table>`: The name of the dictionary table, which needs to be a Primary Key table. The supported data type is VARCHAR.
+  - `[<db_name>.]<dict_table>`: The name of the dictionary table, which needs to be a Primary Key table. The supported data type is `VARCHAR`.
   - `key_column_expr_list`: The expression list for key columns in the dictionary table, including one or multiple `key_column_exprs`. The `key_column_expr` can be the name of a key column in the dictionary table, or a specific key or key expression.
 
     This expression list needs to include all Primary Key columns of the dictionary table, which means the total number of expressions needs to match the total number of Primary Key columns in the dictionary table. So when the dictionary table uses composite primary key, the expressions in this list needs to correspond to the Primary Key columns defined in the table schema by sequence. Multiple expressions in this list are separated by commas (`,`). And if a `key_column_expr` is a specific key or key expression, its type must match the type of the corresponding Primary Key column in the dictionary table.
