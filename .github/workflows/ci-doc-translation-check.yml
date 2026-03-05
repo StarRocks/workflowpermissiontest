@@ -227,7 +227,7 @@ jobs:
                 body += "If you are fluent in any of the missing languages you can add them. If not, a maintainer can generate the translations below.\n\n";
                 body += "**Maintainer:** Check the ones you wish to generate:\n\n";
                 body += automatedCheckboxBuffer;
-                body += "---\n*Maintainers: Check boxes and reply with `/translate` to start.*\n\n";
+                body += "---\n*Maintainers: Check boxes and reply with `/translate` (full file) or `/translate --mode=changed` (changed parameter blocks with full-file fallback).*\n\n";
               }
 
               if (hasManualTranslations) {

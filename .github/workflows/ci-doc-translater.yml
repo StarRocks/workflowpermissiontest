@@ -88,6 +88,13 @@ jobs:
           ref: 'v1.0.6'
           path: trusted_tools
 
+      - name: Checkout Workflow Scripts (Trusted)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted_workflow
+
       - name: Get Changed Files
         id: changed-files
         uses: tj-actions/changed-files@v44
@@ -108,6 +115,22 @@ jobs:
             const report = comments.find(c => c.body.includes('### 🌎 Translation Required?'));
             return report ? report.body : '';
 
+      - name: Parse Translation Mode
+        id: parse_mode
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          MODE="full"
+
+          if [[ "$COMMENT_BODY" == *"--mode=changed"* ]] || [[ "$COMMENT_BODY" =~ ^/translate[[:space:]]+changed([[:space:]]|$) ]]; then
+            MODE="changed"
+          elif [[ "$COMMENT_BODY" == *"--mode=full"* ]] || [[ "$COMMENT_BODY" =~ ^/translate[[:space:]]+full([[:space:]]|$) ]]; then
+            MODE="full"
+          fi
+
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "Translation mode: $MODE"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -122,20 +145,48 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BODY: ${{ steps.get_checks.outputs.result }}
           FILES_JSON: ${{ steps.changed-files.outputs.all_changed_files }}
+          TRANSLATION_MODE: ${{ steps.parse_mode.outputs.mode }}
+          BASE_SHA: ${{ steps.pr_data.outputs.base_sha }}
         run: |          
           for SOURCE_FILE in $(echo "$FILES_JSON" | sed 's/\\"/"/g' | jq -r '.[]'); do
             if [[ "$SOURCE_FILE" =~ ^docs/(en|zh|ja)/ ]]; then
-              SRC=$(echo $SOURCE_FILE | cut -d'/' -f2)
+              SRC=$(echo "$SOURCE_FILE" | cut -d'/' -f2)
               for LANG in ja zh en; do
                 if [ "$SRC" == "$LANG" ]; then continue; fi
-                
-                FULL_LANG=$(echo $LANG | sed 's/ja/Japanese/;s/zh/Chinese/;s/en/English/')
+
                 INDIVIDUAL_STR=" [x] **$LANG** for \`$SOURCE_FILE\`"
                 
                 if [[ "$BODY" == *"$INDIVIDUAL_STR"* ]]; then
                   echo "🚀 Starting translation for $SOURCE_FILE to $LANG"
                   DEST_FILE=$(echo "$SOURCE_FILE" | sed "s|docs/$SRC/|docs/$LANG/|")
-                  
+
+                  if [[ "$TRANSLATION_MODE" == "changed" ]]; then
+                    echo "Attempting changed-block translation for $SOURCE_FILE to $LANG"
+                    set +e
+                    node trusted_workflow/.github/scripts/translate-changed-parameter-blocks.mjs \
+                      --repo-root "pr_code" \
+                      --source-file "$SOURCE_FILE" \
+                      --dest-file "$DEST_FILE" \
+                      --base-sha "$BASE_SHA" \
+                      --translator-cli "trusted_tools/bin/cli.js" \
+                      --source-lang "$SRC" \
+                      --target-lang "$LANG"
+                    PARTIAL_EXIT=$?
+                    set -e
+
+                    if [ "$PARTIAL_EXIT" -eq 0 ]; then
+                      echo "✅ Changed-block translation completed for $DEST_FILE"
+                      continue
+                    fi
+
+                    if [ "$PARTIAL_EXIT" -eq 10 ]; then
+                      echo "ℹ️ Changed-block mode not applicable for $SOURCE_FILE to $LANG. Falling back to full-file translation."
+                    else
+                      echo "::error::Changed-block translation failed unexpectedly for $SOURCE_FILE to $LANG (exit $PARTIAL_EXIT)."
+                      exit "$PARTIAL_EXIT"
+                    fi
+                  fi
+
                   node trusted_tools/bin/cli.js translate --input "pr_code/$SOURCE_FILE" --language $LANG --source $SRC --output "pr_code/$DEST_FILE"
                 fi
               done
