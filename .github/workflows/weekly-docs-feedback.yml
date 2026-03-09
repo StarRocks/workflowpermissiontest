@@ -10,7 +10,6 @@ on:
 permissions:
   contents: read
   issues: write
-  security-events: read
 
 jobs:
   Weekly_info_for_docs_team:
@@ -79,45 +78,18 @@ jobs:
            | jq -r '.searches | to_entries[] | "- [ ] \(.value.search)", "  failures this week: \(.value.count)"' \
            >> feedback.md
 
-      - name: Collect Dependabot alerts for docs
+      - name: Add Dependabot reminder for docs
         if: always()
         run: |
           set -eo pipefail # Ensure the script fails on any command error
           manual_dependabot_url="https://github.com/${GITHUB_REPOSITORY}/security/dependabot?q=is%3Aopen+sort%3Anewest+docs"
+
           echo " " >> feedback.md
-          echo "## Open Dependabot alerts for docs" >> feedback.md
-          echo "Manual view: ${manual_dependabot_url}" >> feedback.md
+          echo "## Dependabot alerts reminder" >> feedback.md
+          echo "- [ ] Check open Dependabot alerts for docs:" >> feedback.md
+          echo "  ${manual_dependabot_url}" >> feedback.md
+          echo "- Coordinate with the security team before sharing alert details in a public issue." >> feedback.md
           echo " " >> feedback.md
-
-          dependabot_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100"
-          alerts_json="$(curl --silent --show-error --location \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "${dependabot_api}")"
-
-          if ! jq -e 'type == "array"' >/dev/null <<<"${alerts_json}"; then
-            echo "- Could not fetch Dependabot alerts via API with the current token/permissions." >> feedback.md
-            echo "- Check manually: ${manual_dependabot_url}" >> feedback.md
-            jq -r '"- API response: " + (.message // "unexpected response")' <<<"${alerts_json}" >> feedback.md
-            exit 0
-          fi
-
-          docs_alert_count="$(jq '[.[] | select((.dependency.manifest_path // "") | test("(^|/)docs(/|$)"))] | length' <<<"${alerts_json}")"
-
-          if [[ "${docs_alert_count}" -eq 0 ]]; then
-            echo "- No open Dependabot alerts found for docs manifests." >> feedback.md
-          else
-            jq -r '.[]
-              | select((.dependency.manifest_path // "") | test("(^|/)docs(/|$)"))
-              | "- [ ] [\(.security_advisory.summary)](\(.html_url))",
-                "  package: \(.dependency.package.name)",
-                "  ecosystem: \(.dependency.package.ecosystem)",
-                "  manifest: \(.dependency.manifest_path // \"n/a\")",
-                "  severity: \(.security_advisory.severity)",
-                "  state: \(.state)",
-                " "' <<<"${alerts_json}" >> feedback.md
-          fi
 
       - name: Create issue from file
         if: always()
