@@ -23,7 +23,7 @@ key_column_expr ::= <column_name> | <expr>
 ## Parameters
 
 - Required parameters:
-  - `[<db_name>.]<dict_table>`: The name of the dictionary table, which needs to be a Primary Key table. The supported data type is VARCHAR.
+  - `[<db_name>.]<dict_table>`: The name of the dictionary table, which needs to be a Primary Key table. The supported data type is `VARCHAR`.
   - `key_column_expr_list`: The expression list for key columns in the dictionary table, including one or multiple `key_column_exprs`. The `key_column_expr` can be the name of a key column in the dictionary table, or a specific key or key expression.
 
     This expression list needs to include all Primary Key columns of the dictionary table, which means the total number of expressions needs to match the total number of Primary Key columns in the dictionary table. So when the dictionary table uses composite primary key, the expressions in this list needs to correspond to the Primary Key columns defined in the table schema by sequence. Multiple expressions in this list are separated by commas (`,`). And if a `key_column_expr` is a specific key or key expression, its type must match the type of the corresponding Primary Key column in the dictionary table.
@@ -124,7 +124,7 @@ However, when the value mapped to the specified key is not found, if the `<null_
       4 rows in set (0.02 sec)
       ```
 
-    The usage of `dict_mapping` in this example can accelerate [deduplication calculations and JOIN queries](../../../using_starrocks/query_acceleration_with_auto_increment.md). Compared to the previous solutions for building a global dictionary to accelerate precise deduplication, the  solution by using `dict_mapping` is more flexible and user-friendly. Because the mapping values are directly obtained from the dictionary table at the stage "loading mapping relationships between keys and values into the table". You do not need to write statements to join the dictionary table to obtain mapping values. Additionally, this solution supports various data loading methods.<!--For detailed usage, please refer to xxx.-->
+    The usage of `dict_mapping` in this example can accelerate [deduplication calculations and JOIN queries](../../../using_starrocks/query_acceleration_with_auto_increment.md). Compared to the previous solutions for building a global dictionary to accelerate precise deduplication, the  solution by using `dict_mapping` is more flexible and user-friendly. Because the mapping values are directly obtained from the dictionary table at the stage "loading mapping relationships between keys and values into the table". You do not need to write statements to join the dictionary table to obtain mapping values. Additionally, this solution supports various data loading methods.
 
 **Example 3: If the mapping column in the table is not configured as a generated column, you need to explicitly configure the `dict_mapping` function for the mapping column when loading data into the table, obtain the values mapped to the keys.**
 
