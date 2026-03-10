@@ -88,7 +88,6 @@ jobs:
           echo "## Dependabot alerts reminder" >> feedback.md
           echo "- [ ] Check open Dependabot alerts for docs:" >> feedback.md
           echo "  ${manual_dependabot_url}" >> feedback.md
-          echo "- Coordinate with the security team before sharing alert details in a public issue." >> feedback.md
           echo " " >> feedback.md
 
       - name: Create issue from file
