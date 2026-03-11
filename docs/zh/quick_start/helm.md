@@ -1,6 +1,6 @@
 ---
 displayed_sidebar: docs
-description: Use Helm to deploy StarRocks
+description: 使用 Helm 部署 StarRocks
 toc_max_heading_level: 2
 ---
 
@@ -12,78 +12,78 @@ import Clients from '../_assets/quick-start/_clientsAllin1.mdx'
 import SQL from '../_assets/quick-start/_SQL.mdx'
 import Curl from '../_assets/quick-start/_curl.mdx'
 
-# StarRocks with Helm
+# 使用 Helm 部署 StarRocks
 
-## Goals
+## 目标
 
-- Deploy the StarRocks Kubernetes Operator and a StarRocks cluster with Helm
-- Configure a password for the StarRocks database user `root`
-- Provide for high-availability with three FEs and three BEs
-- Store metadata in persistent storage
-- Store data in persistent storage
-- Allow MySQL clients to connect from outside the Kubernetes cluster
-- Allow loading data from outside the Kubernetes cluster using Stream Load
-- Load some public datasets
-- Query the data
+- 使用 Helm 部署 StarRocks Kubernetes Operator 和 StarRocks 集群
+- 为 StarRocks 数据库用户 `root` 配置密码
+- 通过三个 FEs 和三个 BEs 提供高可用性
+- 将元数据存储在持久化存储中
+- 将数据存储在持久化存储中
+- 允许 MySQL 客户端从 Kubernetes 集群外部连接
+- 允许使用 Stream Load 从 Kubernetes 集群外部加载数据
+- 加载一些公共数据集
+- 查询数据
 
 :::tip
-The datasets and queries are the same as the ones used in the Basic Quick Start. The main difference here is deploying with Helm and the StarRocks Operator.
+数据集和查询与 Basic Quick Start 中使用的相同。主要区别在于这里使用 Helm 和 StarRocks Operator 进行部署。
 :::
 
-The data used is provided by NYC OpenData and the National Centers for Environmental Information.
+所使用的数据由 NYC OpenData 和 National Centers for Environmental Information 提供。
 
-Both of these datasets are large, and because this tutorial is intended to help you get exposed to working with StarRocks we are not going to load data for the past 120 years. You can run this with a GKE Kubernetes cluster built on three e2-standard-4 machines (or similar) with 80GB disk. For larger deployments, we have other documentation and will provide that later.
+这两个数据集都很大，由于本教程旨在帮助您接触 StarRocks 的使用，我们不会加载过去 120 年的数据。您可以在基于三台 e2-standard-4 机器（或类似配置）的 GKE Kubernetes 集群上运行此教程，配备 80GB 磁盘。对于更大的部署，我们有其他文档，稍后会提供。
 
-There is a lot of information in this document, and it is presented with step-by-step content at the beginning, and the technical details at the end. This is done to serve these purposes in this order:
+本文档包含大量信息，开头以分步内容呈现，技术细节放在末尾。这样做的目的是按以下顺序服务于这些目的：
 
-1. Get the system deployed with Helm.
-2. Allow the reader to load data in StarRocks and analyze that data.
-3. Explain the basics of data transformation during loading.
+1.  使用 Helm 部署系统。
+2.  允许读者在 StarRocks 中加载数据并分析数据。
+3.  解释加载过程中数据转换的基础知识。
 
 ---
 
-## Prerequisites
+## 前提条件
 
 <OperatorPrereqs />
 
-### SQL client
+### SQL 客户端
 
-You can use the SQL client provided in the Kubernetes environment, or use one on your system. This guide uses the `mysql CLI` Many MySQL-compatible clients will work.
+您可以使用 Kubernetes 环境中提供的 SQL 客户端，也可以使用您系统上的客户端。本指南使用 `mysql CLI`。许多 MySQL 兼容客户端都适用。
 
 ### curl
 
-`curl` is used to issue the data load job to StarRocks, and to download the datasets. Check to see if you have it installed by running `curl` or `curl.exe` at your OS prompt. If curl is not installed, [get curl here](https://curl.se/dlwiz/?type=bin).
+`curl` 用于向 StarRocks 发送数据加载作业，并下载数据集。在您的操作系统提示符下运行 `curl` 或 `curl.exe` 来检查是否已安装。如果未安装 curl，请[在此处获取 curl](https://curl.se/dlwiz/?type=bin)。
 
 ---
 
-## Terminology
+## 术语
 
 ### FE
 
-Frontend nodes are responsible for metadata management, client connection management, query planning, and query scheduling. Each FE stores and maintains a complete copy of metadata in its memory, which guarantees indiscriminate services among the FEs.
+Frontend 节点负责元数据管理、客户端连接管理、查询规划和查询调度。每个 FE 在其内存中存储并维护一份完整的元数据副本，这保证了 FEs 之间的无差别服务。
 
 ### BE
 
-Backend nodes are responsible for both data storage and executing query plans.
+Backend 节点负责数据存储和执行查询计划。
 
 ---
 
-## Add the StarRocks Helm chart repo
+## 添加 StarRocks Helm Chart 仓库
 
-The Helm Chart contains the definitions of the StarRocks Operator and the custom resource StarRocksCluster.
-1. Add the Helm Chart Repo.
+Helm Chart 包含 StarRocks Operator 和自定义资源 StarRocksCluster 的定义。
+1.  添加 Helm Chart 仓库。
 
     ```Bash
     helm repo add starrocks https://starrocks.github.io/starrocks-kubernetes-operator
     ```
 
-2. Update the Helm Chart Repo to the latest version.
+2.  更新 Helm Chart 仓库到最新版本。
 
       ```Bash
       helm repo update
       ```
 
-3. View the Helm Chart Repo that you added.
+3.  查看您添加的 Helm Chart 仓库。
 
       ```Bash
       helm search repo starrocks
@@ -99,17 +99,17 @@ The Helm Chart contains the definitions of the StarRocks Operator and the custom
 
 ---
 
-## Download the data
+## 下载数据
 
-Download these two datasets to your machine.
+将这两个数据集下载到您的机器上。
 
-### New York City crash data
+### 纽约市交通事故数据
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/NYPD_Crash_Data.csv
 ```
 
-### Weather data
+### 天气数据
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/72505394728.csv
@@ -117,41 +117,41 @@ curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-sa
 
 ---
 
-## Create a Helm values file
+## 创建 Helm values 文件
 
-The goals for this quick start are:
+此快速启动的目标是：
 
-1. Configure a password for the StarRocks database user `root`
-2. Provide for high-availability with three FEs and three BEs
-3. Store metadata in persistent storage
-4. Store data in persistent storage
-5. Allow MySQL clients to connect from outside the Kubernetes cluster
-6. Allow loading data from outside the Kubernetes cluster using Stream Load
+1.  为 StarRocks 数据库用户 `root` 配置密码
+2.  通过三个 FEs 和三个 BEs 提供高可用性
+3.  将元数据存储在持久化存储中
+4.  将数据存储在持久化存储中
+5.  允许 MySQL 客户端从 Kubernetes 集群外部连接
+6.  允许使用 Stream Load 从 Kubernetes 集群外部加载数据
 
-The Helm chart provides options to satisfy all of these goals, but they are not configured by default. The rest of this section covers the configuration needed to meet all of these goals. A complete values spec will be provided, but first read the details for each of the six sections and then copy the full spec.
+Helm Chart 提供了满足所有这些目标的选项，但默认情况下并未配置。本节的其余部分介绍了满足所有这些目标所需的配置。将提供完整的 values 规范，但首先阅读六个部分的每个详细信息，然后复制完整的规范。
 
-### 1. Password for the database user
+### 1. 数据库用户密码
 
-This bit of YAML instructs the StarRocks operator to set the password for the database user `root` to the value of the `password` key of the Kubernetes secret `starrocks-root-pass.
+这段 YAML 指示 StarRocks Operator 将数据库用户 `root` 的密码设置为 Kubernetes secret `starrocks-root-pass` 的 `password` 键的值。
 
 ```yaml
 starrocks:
     initPassword:
         enabled: true
-        # Set a password secret, for example:
+        # 设置一个密码 secret，例如：
         # kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
         passwordSecret: starrocks-root-pass
 ```
 
-- Task: Create the Kubernetes secret
+- 任务：创建 Kubernetes secret
 
     ```bash
     kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
     ```
 
-### 2. High Availability with 3 FEs and 3 BEs
+### 2. 三个 FEs 和三个 BEs 的高可用性
 
-By setting `starrocks.starrockFESpec.replicas` to 3, and `starrocks.starrockBeSpec.replicas` to 3 you will have enough FEs and BEs for high availability. Setting the CPU and memory requests low allows the pods to be created in a small Kubernetes environment.
+通过将 `starrocks.starrockFESpec.replicas` 设置为 3，并将 `starrocks.starrockBeSpec.replicas` 设置为 3，您将拥有足够多的 FEs 和 BEs 来实现高可用性。将 CPU 和内存请求设置得较低，允许在小型 Kubernetes 环境中创建 pods。
 
 ```yaml
 starrocks:
@@ -170,13 +170,13 @@ starrocks:
                 memory: 2Gi
 ```
 
-### 3. Store metadata in persistent storage
+### 3. 将元数据存储在持久化存储中
 
-Setting a value for `starrocks.starrocksFESpec.storageSpec.name` to anything other than `""` causes:
-- Persistent storage to be used
-- the value of `starrocks.starrocksFESpec.storageSpec.name` to be used as the prefix for all storage volumes for the service.
+将 `starrocks.starrocksFESpec.storageSpec.name` 的值设置为 `""` 以外的任何值会导致：
+- 使用持久化存储
+- `starrocks.starrocksFESpec.storageSpec.name` 的值将用作服务所有存储卷的前缀。
 
-By setting the value to `fe` these PVs will be created for FE 0:
+通过将值设置为 `fe`，将为 FE 0 创建这些 PVs：
 
 - `fe-meta-kube-starrocks-fe-0`
 - `fe-log-kube-starrocks-fe-0`
@@ -188,18 +188,18 @@ starrocks:
             name: fe
 ```
 
-### 4. Store data in persistent storage
+### 4. 将数据存储在持久化存储中
 
-Setting a value for `starrocks.starrocksBeSpec.storageSpec.name` to anything other than `""` causes:
-- Persistent storage to be used
-- the value of `starrocks.starrocksBeSpec.storageSpec.name` to be used as the prefix for all storage volumes for the service.
+将 `starrocks.starrocksBeSpec.storageSpec.name` 的值设置为 `""` 以外的任何值会导致：
+- 使用持久化存储
+- `starrocks.starrocksBeSpec.storageSpec.name` 的值将用作服务所有存储卷的前缀。
 
-By setting the value to `be` these PVs will be created for BE 0:
+通过将值设置为 `be`，将为 BE 0 创建这些 PVs：
 
 - `be-data-kube-starrocks-be-0`
 - `be-log-kube-starrocks-be-0`
 
-Setting the `storageSize` to 15Gi reduces the storage from the default of 1Ti to fit smaller quotas for storage.
+将 `storageSize` 设置为 15Gi 可将存储从默认的 1Ti 减少以适应较小的存储配额。
 
 ```yaml
 starrocks:
@@ -209,9 +209,9 @@ starrocks:
             storageSize: 15Gi
 ```
 
-### 5. LoadBalancer for MySQL clients
+### 5. 用于 MySQL 客户端的 LoadBalancer
 
-By default, access to the FE service is through cluster IPs. To allow external access, `service.type` is set to `LoadBalancer`
+默认情况下，对 FE 服务的访问通过 Cluster IP。为了允许外部访问，`service.type` 被设置为 `LoadBalancer`。
 
 ```yaml
 starrocks:
@@ -220,9 +220,9 @@ starrocks:
             type: LoadBalancer
 ```
 
-### 6. LoadBalancer for external data loading
+### 6. 用于外部数据加载的 LoadBalancer
 
-Stream Load requires external access to both FEs and BEs. The requests are sent to the FE and then the FE assigns a BE to process the upload. To allow the `curl` command to be redirected to the BE the `starroclFeProxySpec` needs to be enabled and set to type `LoadBalancer`.
+Stream Load 需要外部访问 FEs 和 BEs。请求发送到 FE，然后 FE 分配一个 BE 来处理上传。为了允许 `curl` 命令重定向到 BE，`starroclFeProxySpec` 需要被启用并设置为 `LoadBalancer` 类型。
 
 ```yaml
 starrocks:
@@ -232,15 +232,15 @@ starrocks:
             type: LoadBalancer
 ```
 
-### The complete values file
+### 完整的 values 文件
 
-The above snippets combined provide a full values file. Save this to `my-values.yaml`:
+上述片段组合起来提供了一个完整的 values 文件。将其保存到 `my-values.yaml`：
 
 ```yaml
 starrocks:
     initPassword:
         enabled: true
-        # Set a password secret, for example:
+        # 设置一个密码 secret，例如：
         # kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
         passwordSecret: starrocks-root-pass
 
@@ -271,10 +271,9 @@ starrocks:
             type: LoadBalancer
 ```
 
-## Set the StarRocks root database user password
+## 设置 StarRocks root 数据库用户密码
 
-To load data from outside of the Kubernetes cluster the StarRocks database will be exposed externally. You should set
-a password for the StarRocks database user `root`. The operator will apply the password to the FE and BE nodes.
+为了从 Kubernetes 集群外部加载数据，StarRocks 数据库将对外暴露。您应该为 StarRocks 数据库用户 `root` 设置密码。Operator 将密码应用于 FE 和 BE 节点。
 
 ```bash
 kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
@@ -285,7 +284,7 @@ secret/starrocks-root-pass created
 ```
 ---
 
-## Deploy the operator and StarRocks cluster
+## 部署 Operator 和 StarRocks 集群
 
 ```bash
 helm install -f my-values.yaml starrocks starrocks/kube-starrocks
@@ -305,9 +304,9 @@ It will install both operator and starrocks cluster, please wait for a few minut
 Please see the values.yaml for more operation information: https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml
 ```
 
-## Check the status of the StarRocks cluster
+## 检查 StarRocks 集群状态
 
-You can check the progress with these commands:
+您可以使用以下命令检查进度：
 
 ```bash
 kubectl --namespace default get starrockscluster -l "cluster=kube-starrocks"
@@ -323,7 +322,7 @@ kubectl get pods
 ```
 
 :::note
-The `kube-starrocks-initpwd` pod will go through `error` and `CrashLoopBackOff` states as it attempts to connect to the FE and BE pods to set the StarRocks root password. You should ignore these errors and wait for a status of `Completed` for this pod.
+`kube-starrocks-initpwd` pod 在尝试连接 FE 和 BE pods 以设置 StarRocks root 密码时会经历 `error` 和 `CrashLoopBackOff` 状态。您应该忽略这些错误，并等待此 pod 状态变为 `Completed`。
 :::
 
 ```
@@ -358,10 +357,10 @@ fe-meta-kube-starrocks-fe-0   Bound    pvc-5130c9ff-b797-4f79-a1d2-4214af860d70 
 fe-meta-kube-starrocks-fe-1   Bound    pvc-13545330-63be-42cf-b1ca-3ed6f96a8c98   10Gi       RWO            standard-rwo   <unset>                 2m23s
 fe-meta-kube-starrocks-fe-2   Bound    pvc-609cadd4-c7b7-4cf9-84b0-a75678bb3c4d   10Gi       RWO            standard-rwo   <unset>                 2m23s
 ```
-### Verify that the cluster is healthy
+### 验证集群健康状况
 
 :::tip
-These are the same commands as above, but show the desired state.
+这些命令与上面相同，但显示了期望状态。
 :::
 
 ```bash
@@ -378,7 +377,7 @@ kubectl get pods
 ```
 
 :::tip
-The system is ready when all of the pods except for `kube-starrocks-initpwd` show `1/1` in the `READY` column. The `kube-starrocks-initpwd` pod should show `0/1` and a `STATUS` of `Completed`.
+当除 `kube-starrocks-initpwd` 之外的所有 pods 在 `READY` 列显示 `1/1` 时，系统就绪。`kube-starrocks-initpwd` pod 应该显示 `0/1` 且 `STATUS` 为 `Completed`。
 :::
 
 ```
@@ -394,7 +393,7 @@ kube-starrocks-initpwd-m84br               0/1     Completed   4          2m9s
 kube-starrocks-operator-54ffcf8c5c-xsjc8   1/1     Running     0          2m9s
 ```
 
-The `EXTERNAL-IP` addresses in the highlighted lines will be used to provide SQL client and Stream Load access from outside the Kubernetes cluster.
+高亮行中的 `EXTERNAL-IP` 地址将用于从 Kubernetes 集群外部提供 SQL 客户端和 Stream Load 访问。
 
 ```bash
 kubectl get services
@@ -413,7 +412,7 @@ kubernetes                        ClusterIP      34.118.224.1     <none>        
 ```
 
 :::tip
-Store the `EXTERNAL-IP` addresses from the highlighted lines in environment variables so that you have them handy:
+将高亮行中的 `EXTERNAL-IP` 地址存储在环境变量中，以便随时取用：
 
 ```
 export MYSQL_IP=`kubectl get services kube-starrocks-fe-service --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`
@@ -427,28 +426,28 @@ export FE_PROXY=`kubectl get services kube-starrocks-fe-proxy-service --output j
 
 ---
 
-### Connect to StarRocks with a SQL client
+### 使用 SQL 客户端连接到 StarRocks
 
 :::tip
 
-If you are using a client other than the mysql CLI, open that now.
+如果您使用的是除 mysql CLI 之外的客户端，请立即打开它。
 :::
 
-This command will run the `mysql` command in a Kubernetes pod:
+此命令将在 Kubernetes pod 中运行 `mysql` 命令：
 
 ```sql
 kubectl exec --stdin --tty kube-starrocks-fe-0 -- \
   mysql -P9030 -h127.0.0.1 -u root --prompt="StarRocks > "
 ```
 
-If you have the mysql CLI installed locally, you can use it instead of the one in the Kubernetes cluster:
+如果您的本地安装了 mysql CLI，您可以使用它而不是 Kubernetes 集群中的那个：
 
 ```sql
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 ```
 
 ---
-## Create some tables
+## 创建一些表
 
 ```bash
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
@@ -457,7 +456,7 @@ mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 
 <DDL />
 
-Exit from the MySQL client, or open a new shell to run commands at the command line to upload data.
+退出 MySQL 客户端，或者打开一个新的 shell 在命令行运行命令来上传数据。
 
 ```sql
 exit
@@ -465,16 +464,16 @@ exit
 
 
 
-## Upload data
+## 上传数据
 
-There are many ways to load data into StarRocks. For this tutorial, the simplest way is to use curl and StarRocks Stream Load.
+有多种方法可以将数据加载到 StarRocks 中。对于本教程，最简单的方法是使用 curl 和 StarRocks Stream Load。
 
-Upload the two datasets that you downloaded earlier.
+上传您之前下载的两个数据集。
 
 :::tip
-Open a new shell as these curl commands are run at the operating system prompt, not in the `mysql` client. The commands refer to the datasets that you downloaded, so run them from the directory where you downloaded the files.
+打开一个新的 shell，因为这些 curl 命令是在操作系统提示符下运行的，而不是在 `mysql` 客户端中。这些命令引用您下载的数据集，因此请从下载文件的目录运行它们。
 
-Since this is a new shell, run the export commands again:
+由于这是一个新的 shell，请再次运行 export 命令：
 
 ```bash
 
@@ -483,10 +482,10 @@ export MYSQL_IP=`kubectl get services kube-starrocks-fe-service --output jsonpat
 export FE_PROXY=`kubectl get services kube-starrocks-fe-proxy-service --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`:8080
 ```
 
-You will be prompted for a password. Use the password that you added to the Kubernetes secret `starrocks-root-pass`. If you used the command provided, the password is `g()()dpa$$word`.
+系统会提示您输入密码。使用您添加到 Kubernetes secret `starrocks-root-pass` 的密码。如果您使用了提供的命令，密码是 `g()()dpa$$word`。
 :::
 
-The `curl` commands look complex, but they are explained in detail at the end of the tutorial. For now, we recommend running the commands and running some SQL to analyze the data, and then reading about the data loading details at the end.
+`curl` 命令看起来很复杂，但它们在本教程的末尾有详细解释。现在，我们建议您运行这些命令并运行一些 SQL 来分析数据，然后阅读末尾关于数据加载细节的部分。
 
 
 ```bash
@@ -558,15 +557,15 @@ Enter host password for user 'root':
 }
 ```
 
-## Connect with a MySQL client
+## 使用 MySQL 客户端连接
 
-Connect with a MySQL client if you are not connected. Remember to use the external IP address of the `kube-starrocks-fe-service` service and the password that you configured in the Kubernetes secret `starrocks-root-pass`.
+如果未连接，请使用 MySQL 客户端连接。请记住使用 `kube-starrocks-fe-service` 服务的外部 IP 地址以及您在 Kubernetes secret `starrocks-root-pass` 中配置的密码。
 
 ```bash
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 ```
 
-## Answer some questions
+## 回答一些问题
 
 <SQL />
 
@@ -574,9 +573,9 @@ mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 exit
 ```
 
-## Cleanup
+## 清理
 
-Run this command if you are finished and would like to remove the StarRocks cluster and the StarRocks operator.
+如果您已完成并希望删除 StarRocks 集群和 StarRocks Operator，请运行此命令。
 
 ```bash
 helm delete starrocks
@@ -585,34 +584,34 @@ helm delete starrocks
 
 ---
 
-## Summary
+## 总结
 
-In this tutorial you:
+在本教程中您：
 
-- Deployed StarRocks with Helm and the StarRocks Operator
-- Loaded crash data provided by New York City and weather data provided by NOAA
-- Analyzed the data using SQL JOINs to find out that driving in low visibility or icy streets is a bad idea
+- 使用 Helm 和 StarRocks Operator 部署了 StarRocks
+- 加载了纽约市提供的交通事故数据和 NOAA 提供的天气数据
+- 使用 SQL JOINs 分析数据，发现能见度低或冰雪路面驾驶是个坏主意
 
-There is more to learn; we intentionally glossed over the data transformation done during the Stream Load. The details on that are in the notes on the curl commands below.
+还有更多内容需要学习；我们特意略过了 Stream Load 期间完成的数据转换。有关这些的详细信息在下面 curl 命令的注释中。
 
 ---
 
-## Notes on the curl commands
+## 关于 curl 命令的注意事项
 
 <Curl />
 
 ---
 
-## More information
+## 更多信息
 
-Default [`values.yaml`](https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml)
+默认 [`values.yaml`](https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml)
 
 [Stream Load](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md)
 
-The [Motor Vehicle Collisions - Crashes](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) dataset is provided by New York City subject to these [terms of use](https://www.nyc.gov/home/terms-of-use.page) and [privacy policy](https://www.nyc.gov/home/privacy-policy.page).
+[Motor Vehicle Collisions - Crashes](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) 数据集由纽约市提供，受这些[使用条款](https://www.nyc.gov/home/terms-of-use.page)和[隐私政策](https://www.nyc.gov/home/privacy-policy.page)约束。
 
-The [Local Climatological Data](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) is provided by NOAA with this [disclaimer](https://www.noaa.gov/disclaimer) and this [privacy policy](https://www.noaa.gov/protecting-your-privacy).
+[Local Climatological Data](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) 由 NOAA 提供，附带此[免责声明](https://www.noaa.gov/disclaimer)和此[隐私政策](https://www.noaa.gov/protecting-your-privacy)。
 
-[Helm](https://helm.sh/) is a package manager for Kubernetes. A [Helm Chart](https://helm.sh/docs/topics/charts/) is a Helm package and contains all of the resource definitions necessary to run an application on a Kubernetes cluster.
+[Helm](https://helm.sh/) 是 Kubernetes 的包管理器。[Helm Chart](https://helm.sh/docs/topics/charts/) 是 Helm 包，包含在 Kubernetes 集群上运行应用程序所需的所有资源定义。
 
-[`starrocks-kubernetes-operator` and `kube-starrocks` Helm Chart](https://github.com/StarRocks/starrocks-kubernetes-operator).
+[`starrocks-kubernetes-operator` 和 `kube-starrocks` Helm Chart](https://github.com/StarRocks/starrocks-kubernetes-operator)。
