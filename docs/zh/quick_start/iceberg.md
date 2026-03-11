@@ -1,7 +1,7 @@
 ---
 displayed_sidebar: docs
 sidebar_position: 3
-description: Data Lakehouse with Apache Iceberg
+description: 基于 Apache Iceberg 构建数据湖
 toc_max_heading_level: 2
 keywords: [ 'iceberg' ]
 ---
@@ -9,20 +9,15 @@ keywords: [ 'iceberg' ]
 import DataLakeIntro from '../_assets/commonMarkdown/datalakeIntro.mdx'
 import Clients from '../_assets/quick-start/_clientsCompose.mdx'
 
-# Apache Iceberg Lakehouse
+# Apache Iceberg 数据湖
 
-ice ice baby
-
-This guide will get you up and running with Apache Iceberg™ using StarRocks™, including sample code to highlight some
-powerful features.
+本指南将介绍如何使用 StarRocks™ 快速部署和运行 Apache Iceberg™，并提供示例代码以展示其强大功能。
 
 ### Docker-Compose
 
-The fastest way to get started is to use a docker-compose file that uses the `starrocks/fe-ubuntu` and `starrocks/be-ubuntu`
-images which contain a local StarRocks cluster with a configured Iceberg catalog. To use this, you'll need to install
-the Docker CLI.
+快速入门的最佳方式是使用一个 Docker-Compose 文件，该文件利用 `starrocks/fe-ubuntu` 和 `starrocks/be-ubuntu` 镜像部署一个包含预配置 Iceberg catalog 的本地 StarRocks 集群。要使用此文件，您需要安装 Docker CLI。
 
-Once you have Docker installed, save the yaml below into a file named docker-compose.yml:
+安装 Docker 后，将以下 YAML 代码保存为 `docker-compose.yml` 文件：
 
 ```yml
 services:
@@ -137,20 +132,20 @@ networks:
   iceberg_net:
 ```
 
-Next, start up the docker containers with this command:
+接下来，使用以下命令启动 Docker 容器：
 
 ```Plain
 docker compose up --detach --wait --wait-timeout 400
 ```
 
-You can then run any of the following commands to start a StarRocks session.
+然后，您可以运行以下任何命令来启动 StarRocks 会话。
 
 ```bash
 docker exec -it starrocks-fe \
 mysql -P 9030 -h 127.0.0.1 -u root --prompt="StarRocks > "
 ```
 
-### Adding and Using a Catalog
+### 添加和使用 Catalog
 
 ```SQL
 CREATE EXTERNAL CATALOG 'demo'
@@ -176,11 +171,11 @@ SHOW CATALOGS\G
 *************************** 1. row ***************************
 Catalog: default_catalog
    Type: Internal
-Comment: An internal catalog contains this cluster's self-managed tables.
+Comment: 一个内部 catalog，包含此集群的自管理表。
 *************************** 2. row ***************************
 Catalog: demo
    Type: Iceberg
-Comment: External catalog to Apache Iceberg on MinIO
+Comment: 连接到 MinIO 上的 Apache Iceberg 的外部 catalog。
 2 rows in set (0.00 sec)
 ```
 
@@ -188,7 +183,7 @@ Comment: External catalog to Apache Iceberg on MinIO
 SET CATALOG demo;
 ```
 
-### Creating and using a database
+### 创建和使用数据库
 
 ```SQL
 CREATE DATABASE nyc;
@@ -198,7 +193,7 @@ CREATE DATABASE nyc;
 USE nyc;
 ```
 
-### Creating a table
+### 创建表
 
 ```SQL
 CREATE TABLE demo.nyc.taxis
@@ -211,7 +206,7 @@ CREATE TABLE demo.nyc.taxis
 ) PARTITION BY (vendor_id);
 ```
 
-### Writing Data to a Table
+### 向表中写入数据
 
 ```SQL
 INSERT INTO demo.nyc.taxis
@@ -221,34 +216,30 @@ VALUES (1000371, 1.8, 15.32, 'N', 1),
        (1000374, 8.4, 42.13, 'Y', 1);
 ```
 
-### Reading Data from a Table
+### 从表中读取数据
 
 ```SQL
 SELECT *
 FROM demo.nyc.taxis;
 ```
 
-### Verify that the data is stored in object storage
+### 验证数据是否存储在对象存储中
 
-When you added and used the external catalog, Starrocks started using MinIO as the object store for the `demo.nyc.taxis`
-table. If you navigate to http://localhost:9001 and then navigate through the Object Browser menu to
-`warehouse/nyc/taxis/` you can confirm that StarRocks is using MinIO for the storage.
+当您添加和使用 external catalog 后，StarRocks 开始使用 MinIO 作为 `demo.nyc.taxis` 表的对象存储。如果您访问 http://localhost:9001，然后通过 Object Browser 菜单导航到 `warehouse/nyc/taxis/`，即可确认 StarRocks 正在使用 MinIO 进行存储。
 
 :::tip
 
-The username and password for MinIO are in the docker-compose.yml file. You will be prompted to change the password to something better, just ignore this advice for the tutorial.
+MinIO 的用户名和密码位于 `docker-compose.yml` 文件中。您会被提示将密码更改为更安全的密码，但在本教程中请忽略此建议。
 
 ![img](../_assets/quick-start/MinIO-Iceberg-data.png)
 :::
 
-### Next Steps
+### 后续步骤
 
-#### Adding Iceberg to StarRocks
+#### 将 Iceberg 添加到 StarRocks
 
-If you already have a StarRocks 3.2.0, or later, environment, it comes with the Iceberg 1.6.0 included. No additional
-downloads or jars are needed.
+如果您已经拥有 StarRocks 3.2.0 或更高版本的环境，它已内置 Iceberg 1.6.0。无需额外下载或添加 JAR 包。
 
-#### Learn More
+#### 了解更多
 
-Now that you're up and running with Iceberg and StarRocks, check out
-the [StarRocks-Iceberg docs](../data_source/catalog/iceberg/iceberg_catalog.md) to learn more!
+现在您已经成功部署并运行了 Iceberg 和 StarRocks，请查阅 [StarRocks-Iceberg 文档](../data_source/catalog/iceberg/iceberg_catalog.md) 以了解更多信息！
