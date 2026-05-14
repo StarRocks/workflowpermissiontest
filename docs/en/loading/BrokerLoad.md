@@ -6,7 +6,7 @@ displayed_sidebar: docs
 
 import InsertPrivNote from '../_assets/commonMarkdown/insertPrivNote.mdx'
 
-StarRocks provides the loading method MySQL-based Broker Load to help you load a large amount of data from HDFS or cloud storage into StarRocks.
+StarRocks provides the loading method MySQL-based Broker Load to test you load a large amount of data from HDFS or cloud storage into StarRocks.
 
 Broker Load runs in asynchronous loading mode. After you submit a load job, StarRocks asynchronously runs the job. You need to use the [SHOW LOAD](../sql-reference/sql-statements/loading_unloading/SHOW_LOAD.md) statement or the `curl` command to check the result of the job.
 
