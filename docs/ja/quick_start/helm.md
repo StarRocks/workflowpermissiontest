@@ -1,6 +1,6 @@
 ---
 displayed_sidebar: docs
-description: Use Helm to deploy StarRocks
+description: Helm を使用して StarRocks をデプロイする
 toc_max_heading_level: 2
 ---
 
@@ -12,78 +12,78 @@ import Clients from '../_assets/quick-start/_clientsAllin1.mdx'
 import SQL from '../_assets/quick-start/_SQL.mdx'
 import Curl from '../_assets/quick-start/_curl.mdx'
 
-# StarRocks with Helm
+# Helm を使用した StarRocks
 
-## Goals
+## 目標
 
-- Deploy the StarRocks Kubernetes Operator and a StarRocks cluster with Helm
-- Configure a password for the StarRocks database user `root`
-- Provide for high-availability with three FEs and three BEs
-- Store metadata in persistent storage
-- Store data in persistent storage
-- Allow MySQL clients to connect from outside the Kubernetes cluster
-- Allow loading data from outside the Kubernetes cluster using Stream Load
-- Load some public datasets
-- Query the data
+- Helm を使用して StarRocks Kubernetes Operator と StarRocks クラスターをデプロイする
+- StarRocks データベースユーザー `root` のパスワードを設定する
+- 3 つの FE と 3 つの BE で高可用性を確保する
+- メタデータを永続ストレージに保存する
+- データを永続ストレージに保存する
+- Kubernetes クラスターの外部から MySQL クライアントが接続できるようにする
+- Stream Load を使用して Kubernetes クラスターの外部からデータをロードできるようにする
+- いくつかの公開データセットをロードする
+- データをクエリする
 
 :::tip
-The datasets and queries are the same as the ones used in the Basic Quick Start. The main difference here is deploying with Helm and the StarRocks Operator.
+データセットとクエリは、Basic Quick Start で使用されているものと同じです。ここでの主な違いは、Helm と StarRocks Operator を使用してデプロイすることです。
 :::
 
-The data used is provided by NYC OpenData and the National Centers for Environmental Information.
+使用されるデータは、NYC OpenData と National Centers for Environmental Information から提供されています。
 
-Both of these datasets are large, and because this tutorial is intended to help you get exposed to working with StarRocks we are not going to load data for the past 120 years. You can run this with a GKE Kubernetes cluster built on three e2-standard-4 machines (or similar) with 80GB disk. For larger deployments, we have other documentation and will provide that later.
+これらのデータセットはどちらも大規模であるため、このチュートリアルでは StarRocks の操作に慣れていただくことを目的としているため、過去 120 年分のデータをロードすることはありません。このチュートリアルは、3 台の e2-standard-4 マシン (または類似の構成) と 80GB のディスクを搭載した GKE Kubernetes クラスターで実行できます。大規模なデプロイメントについては、別のドキュメントがあり、後で提供します。
 
-There is a lot of information in this document, and it is presented with step-by-step content at the beginning, and the technical details at the end. This is done to serve these purposes in this order:
+このドキュメントには多くの情報が含まれており、最初はステップバイステップのコンテンツで、最後には技術的な詳細が提示されています。これは、以下の目的をこの順序で果たすために行われます。
 
-1. Get the system deployed with Helm.
-2. Allow the reader to load data in StarRocks and analyze that data.
-3. Explain the basics of data transformation during loading.
+1. Helm でシステムをデプロイする。
+2. 読者が StarRocks にデータをロードし、そのデータを分析できるようにする。
+3. ロード中のデータ変換の基本を説明する。
 
 ---
 
-## Prerequisites
+## 前提条件
 
 <OperatorPrereqs />
 
-### SQL client
+### SQL クライアント
 
-You can use the SQL client provided in the Kubernetes environment, or use one on your system. This guide uses the `mysql CLI` Many MySQL-compatible clients will work.
+Kubernetes 環境で提供される SQL クライアントを使用することも、お使いのシステムで SQL クライアントを使用することもできます。このガイドでは `mysql CLI` を使用します。多くの MySQL 互換クライアントが動作します。
 
 ### curl
 
-`curl` is used to issue the data load job to StarRocks, and to download the datasets. Check to see if you have it installed by running `curl` or `curl.exe` at your OS prompt. If curl is not installed, [get curl here](https://curl.se/dlwiz/?type=bin).
+`curl` は、StarRocks へのデータロードジョブの発行と、データセットのダウンロードに使用されます。OS プロンプトで `curl` または `curl.exe` を実行して、インストールされているかどうかを確認してください。`curl` がインストールされていない場合は、[こちらから `curl` を入手してください](https://curl.se/dlwiz/?type=bin)。
 
 ---
 
-## Terminology
+## 用語
 
 ### FE
 
-Frontend nodes are responsible for metadata management, client connection management, query planning, and query scheduling. Each FE stores and maintains a complete copy of metadata in its memory, which guarantees indiscriminate services among the FEs.
+Frontend ノードは、メタデータ管理、クライアント接続管理、クエリ計画、およびクエリスケジューリングを担当します。各 FE は、完全なメタデータのコピーをメモリに保存および維持し、FE 間での差別ないサービスを保証します。
 
 ### BE
 
-Backend nodes are responsible for both data storage and executing query plans.
+Backend ノードは、データストレージとクエリ計画の実行の両方を担当します。
 
 ---
 
-## Add the StarRocks Helm chart repo
+## StarRocks Helm チャートリポジトリを追加する
 
-The Helm Chart contains the definitions of the StarRocks Operator and the custom resource StarRocksCluster.
-1. Add the Helm Chart Repo.
+Helm Chart には、StarRocks Operator とカスタムリソース StarRocksCluster の定義が含まれています。
+1. Helm Chart リポジトリを追加します。
 
     ```Bash
     helm repo add starrocks https://starrocks.github.io/starrocks-kubernetes-operator
     ```
 
-2. Update the Helm Chart Repo to the latest version.
+2. Helm Chart リポジトリを最新バージョンに更新します。
 
       ```Bash
       helm repo update
       ```
 
-3. View the Helm Chart Repo that you added.
+3. 追加した Helm Chart リポジトリを表示します。
 
       ```Bash
       helm search repo starrocks
@@ -99,17 +99,17 @@ The Helm Chart contains the definitions of the StarRocks Operator and the custom
 
 ---
 
-## Download the data
+## データをダウンロードする
 
-Download these two datasets to your machine.
+これら 2 つのデータセットをマシンにダウンロードします。
 
-### New York City crash data
+### ニューヨーク市の交通事故データ
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/NYPD_Crash_Data.csv
 ```
 
-### Weather data
+### 気象データ
 
 ```bash
 curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-samples/quickstart/datasets/72505394728.csv
@@ -117,22 +117,22 @@ curl -O https://raw.githubusercontent.com/StarRocks/demo/master/documentation-sa
 
 ---
 
-## Create a Helm values file
+## Helm values ファイルを作成する
 
-The goals for this quick start are:
+このクイックスタートの目標は次のとおりです。
 
-1. Configure a password for the StarRocks database user `root`
-2. Provide for high-availability with three FEs and three BEs
-3. Store metadata in persistent storage
-4. Store data in persistent storage
-5. Allow MySQL clients to connect from outside the Kubernetes cluster
-6. Allow loading data from outside the Kubernetes cluster using Stream Load
+1. StarRocks データベースユーザー `root` のパスワードを設定する
+2. 3 つの FE と 3 つの BE で高可用性を確保する
+3. メタデータを永続ストレージに保存する
+4. データを永続ストレージに保存する
+5. Kubernetes クラスターの外部から MySQL クライアントが接続できるようにする
+6. Stream Load を使用して Kubernetes クラスターの外部からデータをロードできるようにする
 
-The Helm chart provides options to satisfy all of these goals, but they are not configured by default. The rest of this section covers the configuration needed to meet all of these goals. A complete values spec will be provided, but first read the details for each of the six sections and then copy the full spec.
+Helm チャートはこれらの目標をすべて満たすオプションを提供しますが、それらはデフォルトでは設定されていません。このセクションの残りの部分では、これらの目標をすべて達成するために必要な構成について説明します。完全な values spec を提供しますが、まず 6 つの各セクションの詳細を読み、その後で完全な spec をコピーしてください。
 
-### 1. Password for the database user
+### 1. データベースユーザーのパスワード
 
-This bit of YAML instructs the StarRocks operator to set the password for the database user `root` to the value of the `password` key of the Kubernetes secret `starrocks-root-pass.
+この YAML は、StarRocks Operator に、データベースユーザー `root` のパスワードを Kubernetes シークレット `starrocks-root-pass` の `password` キーの値に設定するように指示します。
 
 ```yaml
 starrocks:
@@ -143,15 +143,15 @@ starrocks:
         passwordSecret: starrocks-root-pass
 ```
 
-- Task: Create the Kubernetes secret
+- タスク: Kubernetes シークレットを作成する
 
     ```bash
     kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
     ```
 
-### 2. High Availability with 3 FEs and 3 BEs
+### 2. 3 つの FE と 3 つの BE を使用した高可用性
 
-By setting `starrocks.starrockFESpec.replicas` to 3, and `starrocks.starrockBeSpec.replicas` to 3 you will have enough FEs and BEs for high availability. Setting the CPU and memory requests low allows the pods to be created in a small Kubernetes environment.
+`starrocks.starrockFESpec.replicas` を 3 に、`starrocks.starrockBeSpec.replicas` を 3 に設定することで、高可用性に十分な FE と BE が得られます。CPU およびメモリリクエストを低く設定することで、小さな Kubernetes 環境でもポッドを作成できます。
 
 ```yaml
 starrocks:
@@ -170,13 +170,13 @@ starrocks:
                 memory: 2Gi
 ```
 
-### 3. Store metadata in persistent storage
+### 3. メタデータを永続ストレージに保存する
 
-Setting a value for `starrocks.starrocksFESpec.storageSpec.name` to anything other than `""` causes:
-- Persistent storage to be used
-- the value of `starrocks.starrocksFESpec.storageSpec.name` to be used as the prefix for all storage volumes for the service.
+`starrocks.starrocksFESpec.storageSpec.name` の値を `""` 以外に設定すると、次のようになります。
+- 永続ストレージが使用されます
+- `starrocks.starrocksFESpec.storageSpec.name` の値が、サービスのすべてのストレージボリュームのプレフィックスとして使用されます。
 
-By setting the value to `fe` these PVs will be created for FE 0:
+値を `fe` に設定すると、FE 0 に対して次の PV が作成されます。
 
 - `fe-meta-kube-starrocks-fe-0`
 - `fe-log-kube-starrocks-fe-0`
@@ -188,18 +188,18 @@ starrocks:
             name: fe
 ```
 
-### 4. Store data in persistent storage
+### 4. データを永続ストレージに保存する
 
-Setting a value for `starrocks.starrocksBeSpec.storageSpec.name` to anything other than `""` causes:
-- Persistent storage to be used
-- the value of `starrocks.starrocksBeSpec.storageSpec.name` to be used as the prefix for all storage volumes for the service.
+`starrocks.starrocksBeSpec.storageSpec.name` の値を `""` 以外に設定すると、次のようになります。
+- 永続ストレージが使用されます
+- `starrocks.starrocksBeSpec.storageSpec.name` の値が、サービスのすべてのストレージボリュームのプレフィックスとして使用されます。
 
-By setting the value to `be` these PVs will be created for BE 0:
+値を `be` に設定すると、BE 0 に対して次の PV が作成されます。
 
 - `be-data-kube-starrocks-be-0`
 - `be-log-kube-starrocks-be-0`
 
-Setting the `storageSize` to 15Gi reduces the storage from the default of 1Ti to fit smaller quotas for storage.
+`storageSize` を 15Gi に設定すると、ストレージがデフォルトの 1Ti から減少し、より小さなストレージクォータに収まります。
 
 ```yaml
 starrocks:
@@ -209,9 +209,9 @@ starrocks:
             storageSize: 15Gi
 ```
 
-### 5. LoadBalancer for MySQL clients
+### 5. MySQL クライアント用の LoadBalancer
 
-By default, access to the FE service is through cluster IPs. To allow external access, `service.type` is set to `LoadBalancer`
+デフォルトでは、FE サービスへのアクセスはクラスター IP を介して行われます。外部アクセスを許可するには、`service.type` を `LoadBalancer` に設定します。
 
 ```yaml
 starrocks:
@@ -220,9 +220,9 @@ starrocks:
             type: LoadBalancer
 ```
 
-### 6. LoadBalancer for external data loading
+### 6. 外部データロード用の LoadBalancer
 
-Stream Load requires external access to both FEs and BEs. The requests are sent to the FE and then the FE assigns a BE to process the upload. To allow the `curl` command to be redirected to the BE the `starroclFeProxySpec` needs to be enabled and set to type `LoadBalancer`.
+Stream Load には、FE と BE の両方への外部アクセスが必要です。リクエストは FE に送信され、FE はアップロードを処理する BE を割り当てます。`curl` コマンドが BE にリダイレクトされるようにするには、`starroclFeProxySpec` を有効にし、タイプを `LoadBalancer` に設定する必要があります。
 
 ```yaml
 starrocks:
@@ -232,9 +232,9 @@ starrocks:
             type: LoadBalancer
 ```
 
-### The complete values file
+### 完全な values ファイル
 
-The above snippets combined provide a full values file. Save this to `my-values.yaml`:
+上記のコードスニペットを組み合わせると、完全な values ファイルになります。これを `my-values.yaml` として保存します。
 
 ```yaml
 starrocks:
@@ -271,10 +271,9 @@ starrocks:
             type: LoadBalancer
 ```
 
-## Set the StarRocks root database user password
+## StarRocks の root データベースユーザーパスワードを設定する
 
-To load data from outside of the Kubernetes cluster the StarRocks database will be exposed externally. You should set
-a password for the StarRocks database user `root`. The operator will apply the password to the FE and BE nodes.
+Kubernetes クラスターの外部からデータをロードするために、StarRocks データベースは外部に公開されます。StarRocks データベースユーザー `root` のパスワードを設定する必要があります。オペレーターはパスワードを FE ノードと BE ノードに適用します。
 
 ```bash
 kubectl create secret generic starrocks-root-pass --from-literal=password='g()()dpa$$word'
@@ -285,7 +284,7 @@ secret/starrocks-root-pass created
 ```
 ---
 
-## Deploy the operator and StarRocks cluster
+## オペレーターと StarRocks クラスターをデプロイする
 
 ```bash
 helm install -f my-values.yaml starrocks starrocks/kube-starrocks
@@ -305,9 +304,9 @@ It will install both operator and starrocks cluster, please wait for a few minut
 Please see the values.yaml for more operation information: https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml
 ```
 
-## Check the status of the StarRocks cluster
+## StarRocks クラスターのステータスを確認する
 
-You can check the progress with these commands:
+これらのコマンドで進行状況を確認できます。
 
 ```bash
 kubectl --namespace default get starrockscluster -l "cluster=kube-starrocks"
@@ -323,7 +322,7 @@ kubectl get pods
 ```
 
 :::note
-The `kube-starrocks-initpwd` pod will go through `error` and `CrashLoopBackOff` states as it attempts to connect to the FE and BE pods to set the StarRocks root password. You should ignore these errors and wait for a status of `Completed` for this pod.
+`kube-starrocks-initpwd` ポッドは、FE および BE ポッドに接続して StarRocks の root パスワードを設定しようとする際に、`error` および `CrashLoopBackOff` 状態を経由します。これらのエラーは無視し、このポッドのステータスが `Completed` になるまで待機してください。
 :::
 
 ```
@@ -358,10 +357,10 @@ fe-meta-kube-starrocks-fe-0   Bound    pvc-5130c9ff-b797-4f79-a1d2-4214af860d70 
 fe-meta-kube-starrocks-fe-1   Bound    pvc-13545330-63be-42cf-b1ca-3ed6f96a8c98   10Gi       RWO            standard-rwo   <unset>                 2m23s
 fe-meta-kube-starrocks-fe-2   Bound    pvc-609cadd4-c7b7-4cf9-84b0-a75678bb3c4d   10Gi       RWO            standard-rwo   <unset>                 2m23s
 ```
-### Verify that the cluster is healthy
+### クラスターが正常であることを確認する
 
 :::tip
-These are the same commands as above, but show the desired state.
+これらは上記と同じコマンドですが、望ましい状態を示しています。
 :::
 
 ```bash
@@ -378,7 +377,7 @@ kubectl get pods
 ```
 
 :::tip
-The system is ready when all of the pods except for `kube-starrocks-initpwd` show `1/1` in the `READY` column. The `kube-starrocks-initpwd` pod should show `0/1` and a `STATUS` of `Completed`.
+システムは、`kube-starrocks-initpwd` 以外のすべてのポッドが `READY` 列に `1/1` を表示し、`kube-starrocks-initpwd` ポッドが `0/1` と `STATUS` が `Completed` を表示した場合に準備完了です。
 :::
 
 ```
@@ -394,7 +393,7 @@ kube-starrocks-initpwd-m84br               0/1     Completed   4          2m9s
 kube-starrocks-operator-54ffcf8c5c-xsjc8   1/1     Running     0          2m9s
 ```
 
-The `EXTERNAL-IP` addresses in the highlighted lines will be used to provide SQL client and Stream Load access from outside the Kubernetes cluster.
+ハイライトされた行の `EXTERNAL-IP` アドレスは、Kubernetes クラスターの外部から SQL クライアントと Stream Load アクセスを提供するために使用されます。
 
 ```bash
 kubectl get services
@@ -413,7 +412,7 @@ kubernetes                        ClusterIP      34.118.224.1     <none>        
 ```
 
 :::tip
-Store the `EXTERNAL-IP` addresses from the highlighted lines in environment variables so that you have them handy:
+ハイライトされた行の `EXTERNAL-IP` アドレスを環境変数に保存して、すぐに利用できるようにします。
 
 ```
 export MYSQL_IP=`kubectl get services kube-starrocks-fe-service --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`
@@ -427,28 +426,28 @@ export FE_PROXY=`kubectl get services kube-starrocks-fe-proxy-service --output j
 
 ---
 
-### Connect to StarRocks with a SQL client
+### SQL クライアントで StarRocks に接続する
 
 :::tip
 
-If you are using a client other than the mysql CLI, open that now.
+`mysql CLI` 以外のクライアントを使用している場合は、今すぐ開いてください。
 :::
 
-This command will run the `mysql` command in a Kubernetes pod:
+このコマンドは、Kubernetes ポッドで `mysql` コマンドを実行します。
 
 ```sql
 kubectl exec --stdin --tty kube-starrocks-fe-0 -- \
   mysql -P9030 -h127.0.0.1 -u root --prompt="StarRocks > "
 ```
 
-If you have the mysql CLI installed locally, you can use it instead of the one in the Kubernetes cluster:
+`mysql CLI` をローカルにインストールしている場合は、Kubernetes クラスター内のものを使用する代わりに、それを使用できます。
 
 ```sql
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 ```
 
 ---
-## Create some tables
+## テーブルを作成する
 
 ```bash
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
@@ -457,7 +456,7 @@ mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 
 <DDL />
 
-Exit from the MySQL client, or open a new shell to run commands at the command line to upload data.
+MySQL クライアントを終了するか、新しいシェルを開いてコマンドラインでデータをアップロードするコマンドを実行します。
 
 ```sql
 exit
@@ -465,16 +464,16 @@ exit
 
 
 
-## Upload data
+## データをアップロードする
 
-There are many ways to load data into StarRocks. For this tutorial, the simplest way is to use curl and StarRocks Stream Load.
+StarRocks にデータをロードする方法はたくさんあります。このチュートリアルでは、`curl` と StarRocks Stream Load を使用するのが最も簡単な方法です。
 
-Upload the two datasets that you downloaded earlier.
+以前ダウンロードした 2 つのデータセットをアップロードします。
 
 :::tip
-Open a new shell as these curl commands are run at the operating system prompt, not in the `mysql` client. The commands refer to the datasets that you downloaded, so run them from the directory where you downloaded the files.
+これらの `curl` コマンドは、`mysql` クライアントではなく、オペレーティングシステムのプロンプトで実行されるため、新しいシェルを開いてください。コマンドはダウンロードしたデータセットを参照するため、ファイルをダウンロードしたディレクトリから実行してください。
 
-Since this is a new shell, run the export commands again:
+これは新しいシェルであるため、再度エクスポートコマンドを実行します。
 
 ```bash
 
@@ -483,10 +482,10 @@ export MYSQL_IP=`kubectl get services kube-starrocks-fe-service --output jsonpat
 export FE_PROXY=`kubectl get services kube-starrocks-fe-proxy-service --output jsonpath='{.status.loadBalancer.ingress[0].ip}'`:8080
 ```
 
-You will be prompted for a password. Use the password that you added to the Kubernetes secret `starrocks-root-pass`. If you used the command provided, the password is `g()()dpa$$word`.
+パスワードの入力を求められます。Kubernetes シークレット `starrocks-root-pass` に追加したパスワードを使用してください。提供されたコマンドを使用した場合、パスワードは `g()()dpa$$word` です。
 :::
 
-The `curl` commands look complex, but they are explained in detail at the end of the tutorial. For now, we recommend running the commands and running some SQL to analyze the data, and then reading about the data loading details at the end.
+`curl` コマンドは複雑に見えますが、チュートリアルの最後に詳細に説明されています。今のところ、コマンドを実行し、SQL を実行してデータを分析し、その後でデータロードの詳細について読むことをお勧めします。
 
 
 ```bash
@@ -558,15 +557,15 @@ Enter host password for user 'root':
 }
 ```
 
-## Connect with a MySQL client
+## MySQL クライアントで接続する
 
-Connect with a MySQL client if you are not connected. Remember to use the external IP address of the `kube-starrocks-fe-service` service and the password that you configured in the Kubernetes secret `starrocks-root-pass`.
+接続していない場合は、MySQL クライアントで接続します。`kube-starrocks-fe-service` サービスの外部 IP アドレスと、Kubernetes シークレット `starrocks-root-pass` で設定したパスワードを使用することを忘れないでください。
 
 ```bash
 mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 ```
 
-## Answer some questions
+## いくつかの質問に答える
 
 <SQL />
 
@@ -574,9 +573,9 @@ mysql -P9030 -h $MYSQL_IP -u root --prompt="StarRocks > " -p
 exit
 ```
 
-## Cleanup
+## クリーンアップ
 
-Run this command if you are finished and would like to remove the StarRocks cluster and the StarRocks operator.
+作業が終了し、StarRocks クラスターと StarRocks オペレーターを削除したい場合は、このコマンドを実行します。
 
 ```bash
 helm delete starrocks
@@ -585,34 +584,34 @@ helm delete starrocks
 
 ---
 
-## Summary
+## まとめ
 
-In this tutorial you:
+このチュートリアルでは、次のことを行いました。
 
-- Deployed StarRocks with Helm and the StarRocks Operator
-- Loaded crash data provided by New York City and weather data provided by NOAA
-- Analyzed the data using SQL JOINs to find out that driving in low visibility or icy streets is a bad idea
+- Helm と StarRocks Operator を使用して StarRocks をデプロイしました
+- ニューヨーク市から提供された交通事故データと NOAA から提供された気象データをロードしました
+- SQL JOIN を使用してデータを分析し、視界の悪い場所や凍結した道路での運転が危険であることを発見しました
 
-There is more to learn; we intentionally glossed over the data transformation done during the Stream Load. The details on that are in the notes on the curl commands below.
+学ぶべきことはまだたくさんあります。Stream Load 中に行われたデータ変換については意図的に省略しました。その詳細は、以下の `curl` コマンドの注記に記載されています。
 
 ---
 
-## Notes on the curl commands
+## curl コマンドに関する注意点
 
 <Curl />
 
 ---
 
-## More information
+## 詳細情報
 
-Default [`values.yaml`](https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml)
+デフォルトの [`values.yaml`](https://github.com/StarRocks/starrocks-kubernetes-operator/blob/main/helm-charts/charts/kube-starrocks/values.yaml)
 
 [Stream Load](../sql-reference/sql-statements/loading_unloading/STREAM_LOAD.md)
 
-The [Motor Vehicle Collisions - Crashes](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) dataset is provided by New York City subject to these [terms of use](https://www.nyc.gov/home/terms-of-use.page) and [privacy policy](https://www.nyc.gov/home/privacy-policy.page).
+[Motor Vehicle Collisions - Crashes](https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95) データセットは、ニューヨーク市によって提供されており、[利用規約](https://www.nyc.gov/home/terms-of-use.page)と[プライバシーポリシー](https://www.nyc.gov/home/privacy-policy.page)に従います。
 
-The [Local Climatological Data](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) is provided by NOAA with this [disclaimer](https://www.noaa.gov/disclaimer) and this [privacy policy](https://www.noaa.gov/protecting-your-privacy).
+[Local Climatological Data](https://www.ncdc.noaa.gov/cdo-web/datatools/lcd)(LCD) は、NOAA によって提供されており、[免責事項](https://www.noaa.gov/disclaimer)と[プライバシーポリシー](https://www.noaa.gov/protecting-your-privacy)に従います。
 
-[Helm](https://helm.sh/) is a package manager for Kubernetes. A [Helm Chart](https://helm.sh/docs/topics/charts/) is a Helm package and contains all of the resource definitions necessary to run an application on a Kubernetes cluster.
+[Helm](https://helm.sh/) は Kubernetes 用のパッケージマネージャーです。[Helm Chart](https://helm.sh/docs/topics/charts/) は Helm パッケージであり、Kubernetes クラスターでアプリケーションを実行するために必要なすべてのリソース定義を含んでいます。
 
-[`starrocks-kubernetes-operator` and `kube-starrocks` Helm Chart](https://github.com/StarRocks/starrocks-kubernetes-operator).
+[`starrocks-kubernetes-operator` および `kube-starrocks` Helm Chart](https://github.com/StarRocks/starrocks-kubernetes-operator)。
