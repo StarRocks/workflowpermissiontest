@@ -5,6 +5,7 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import { themes as prismThemes } from "prism-react-renderer";
+import { execSync as _execSync } from "node:child_process";
 
 // if the env var DISABLE_VERSIONING is set
 // (example `export DISABLE_VERSIONING=true`) then build only the
@@ -12,6 +13,12 @@ import { themes as prismThemes } from "prism-react-renderer";
 // `unset DISABLE_VERSIONING` (don't set it to false, we are checking
 // to see if the var is set, not what the value is).
 const isVersioningDisabled = !!process.env.DISABLE_VERSIONING || false;
+
+// Record build host for reproducible doc-build tracking.
+let _docBuildHost = "n/a";
+try { _docBuildHost = _execSync("hostname").toString().trim(); } catch (e) {}
+console.log("[doc-build] runner host=" + _docBuildHost);
+
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
